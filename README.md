@@ -306,7 +306,7 @@ For queries, orders, or partner programs:
 
 #### 1. 📅 Temporary Early Schedule Transition (Saturday Delivery)
 - **Re-Aligned Ordering Window**: To optimize fresh farm availability and cater to customer demands, shifted the weekly delivery day one day earlier to **Saturday**. 
-- **Active Window Adjustment**: Re-configured the ordering schedule constants in `script.js` to open on **Thursday at 9:00 AM** and close on **Friday at 3:00 PM** (15:00).
+- **Active Window Adjustment**: Re-configured the ordering schedule constants in `script.js` to open on **Thursday at 1:00 PM** (13:00) and close on **Friday at 3:00 PM** (15:00).
 - **Dynamic Harvest Date Calculations**: Replaced hardcoded date strings with a fully dynamic harvest calendar tracking relative to the Thursday opening day, delivering localized date stamps (`en-IN` and `te-IN`).
 - **Bilingual Scheduling Alerts**: Updated static fallbacks and bilingual translation arrays in both English and Telugu to display custom ordering deadlines and Saturday delivery banners seamlessly.
 

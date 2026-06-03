@@ -63,7 +63,7 @@ const BASKET_TIERS = [
 // ===== Phase 1: Ordering Window Schedule =====
 const ORDERING_SCHEDULE = {
     openDay: 4,      // Thursday (0=Sunday)
-    openHour: 9,     // 9:00 AM
+    openHour: 13,    // 1:00 PM
     closeDay: 5,     // Friday
     closeHour: 15,   // 3:00 PM
     deliveryDay: 6   // Saturday
@@ -326,7 +326,7 @@ const translations = {
         // Phase 1: Ordering Window
         bannerLiveTitle: "This Week's Harvest is LIVE!",
         bannerLiveSubtext: "Order by Friday 3 PM for Saturday delivery (Temporarily moved 1 day earlier for maximum freshness)",
-        bannerClosedTitle: "Ordering Opens Thursday 9 AM",
+        bannerClosedTitle: "Ordering Opens Thursday 1 PM",
         bannerClosedSubtext: "Browse our catalog and plan your weekly basket",
         bannerClosesIn: "Closes in:",
         bannerOpensIn: "Opens in:",
@@ -353,7 +353,7 @@ const translations = {
         minOrderText: "Minimum order: 3 products or total above ₹99 to checkout.",
 
         // Phase 1: Window Closed
-        windowClosedText: "Ordering opens Thursday 9 AM. You can browse and build your cart now.",
+        windowClosedText: "Ordering opens Thursday 1 PM. You can browse and build your cart now.",
 
         // Phase 1: Qty Tooltip
         kattaTooltip: "1 katta ≈ fresh bunch bundle",
@@ -474,7 +474,7 @@ const translations = {
 
         bannerLiveTitle: "ఈ వారపు పంట LIVE!",
         bannerLiveSubtext: "శనివారం డెలివరీ కోసం శుక్రవారం 3 PM లోపు ఆర్డర్ చేయండి (తాజా పంటల లభ్యత కోసం 1 రోజు ముందుగా)",
-        bannerClosedTitle: "ఆర్డరింగ్ గురువారం 9 AM న ప్రారంభం",
+        bannerClosedTitle: "ఆర్డరింగ్ గురువారం 1 PM న ప్రారంభం",
         bannerClosedSubtext: "మా క్యాటలాగ్ చూసి మీ వారపు బాస్కెట్ ప్లాన్ చేయండి",
         bannerClosesIn: "ముగుస్తుంది:",
         bannerOpensIn: "తెరుచుకుంటుంది:",
@@ -497,7 +497,7 @@ const translations = {
         categoryComingSoonSub: "క్షమించండి, ఈ విభాగంలో ఈరోజు తాజా పంట అందుబాటులో లేదు. దయచేసి తర్వాత సందర్శించండి!",
 
         minOrderText: "కనీస ఆర్డర్: 3 ఉత్పత్తులు లేదా మొత్తం ₹99 కంటే ఎక్కువ ఉండాలి.",
-        windowClosedText: "ఆర్డరింగ్ గురువారం 9 AM న తెరుచుకుంటుంది. మీరు ఇప్పుడు బ్రౌజ్ చేయవచ్చు.",
+        windowClosedText: "ఆర్డరింగ్ గురువారం 1 PM న తెరుచుకుంటుంది. మీరు ఇప్పుడు బ్రౌజ్ చేయవచ్చు.",
         kattaTooltip: "1 కట్ట ≈ తాజా కట్ట బండిల్",
 
         badgeFreshHarvest: "🌱 తాజా పంట",
