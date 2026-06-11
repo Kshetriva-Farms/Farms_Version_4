@@ -1,8 +1,9 @@
-const CACHE_NAME = 'kshetriva-farms-cache-v13';
+const CACHE_NAME = 'kshetriva-farms-cache-v14';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './blog.html',
+  './blog-pesticides.html',
   './styles.css',
   './script.js',
   './blog.js',
