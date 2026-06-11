@@ -63,7 +63,7 @@ const BASKET_TIERS = [
 // ===== Phase 1: Ordering Window Schedule =====
 const ORDERING_SCHEDULE = {
     openDay: 5,      // Friday (0=Sunday)
-    openHour: 13,    // 1:00 PM
+    openHour: 12,    // 12:00 PM
     closeDay: 6,     // Saturday
     closeHour: 13,   // 1:00 PM
     deliveryDay: 0   // Sunday
@@ -326,7 +326,7 @@ const translations = {
         // Phase 1: Ordering Window
         bannerLiveTitle: "Order by Saturday 1 PM",
         bannerLiveSubtext: "For Sunday delivery (Fresh from farm directly to your home)",
-        bannerClosedTitle: "Ordering Opens Friday 1 PM",
+        bannerClosedTitle: "Ordering Opens Friday 12 PM",
         bannerClosedSubtext: "Browse our catalog and plan your weekly basket",
         bannerClosesIn: "Closes in:",
         bannerOpensIn: "Opens in:",
@@ -353,7 +353,7 @@ const translations = {
         minOrderText: "Minimum order: 3 products or total above ₹99 to checkout.",
 
         // Phase 1: Window Closed
-        windowClosedText: "Ordering opens Friday 1 PM. You can browse and build your cart now.",
+        windowClosedText: "Ordering opens Friday 12 PM. You can browse and build your cart now.",
 
         // Phase 1: Qty Tooltip
         kattaTooltip: "1 katta ≈ fresh bunch bundle",
@@ -474,7 +474,7 @@ const translations = {
 
         bannerLiveTitle: "శనివారం 1 PM లోపు ఆర్డర్ చేయండి",
         bannerLiveSubtext: "ఆదివారం డెలివరీ కోసం (పొలం నుండి నేరుగా మీ ఇంటికి)",
-        bannerClosedTitle: "ఆర్డరింగ్ శుక్రవారం 1 PM న ప్రారంభం",
+        bannerClosedTitle: "ఆర్డరింగ్ శుక్రవారం 12 PM న ప్రారంభం",
         bannerClosedSubtext: "మా క్యాటలాగ్ చూసి మీ వారపు బాస్కెట్ ప్లాన్ చేయండి",
         bannerClosesIn: "ముగుస్తుంది:",
         bannerOpensIn: "తెరుచుకుంటుంది:",
@@ -497,7 +497,7 @@ const translations = {
         categoryComingSoonSub: "క్షమించండి, ఈ విభాగంలో ఈరోజు తాజా పంట అందుబాటులో లేదు. దయచేసి తర్వాత సందర్శించండి!",
 
         minOrderText: "కనీస ఆర్డర్: 3 ఉత్పత్తులు లేదా మొత్తం ₹99 కంటే ఎక్కువ ఉండాలి.",
-        windowClosedText: "ఆర్డరింగ్ శుక్రవారం 1 PM న తెరుచుకుంటుంది. మీరు ఇప్పుడు బ్రౌజ్ చేయవచ్చు.",
+        windowClosedText: "ఆర్డరింగ్ శుక్రవారం 12 PM న తెరుచుకుంటుంది. మీరు ఇప్పుడు బ్రౌజ్ చేయవచ్చు.",
         kattaTooltip: "1 కట్ట ≈ తాజా కట్ట బండిల్",
 
         badgeFreshHarvest: "🌱 తాజా పంట",
