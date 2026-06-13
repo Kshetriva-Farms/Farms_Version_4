@@ -372,5 +372,9 @@ For queries, orders, or partner programs:
 #### 1. ⏱️ Ordering Window Adjustment (Saturday 9:00 PM Close)
 - **Schedule Re-Alignment**: Configured the storefront ordering schedule close-window bounds in `script.js` to close on **Saturday at 9:00 PM** (closeHour: 21) instead of 1:00 PM.
 - **Bilingual Banners and Binders**: Updated static elements in `index.html` and dynamic translation templates in `script.js` (for English and Telugu) to notify buyers that ordering closes at Saturday 9 PM.
-- **Service Worker Cache-Busting**: Bumped script version parameter inside `index.html` to `v=3.6` and incremented Service Worker cache name to `kshetriva-farms-cache-v17` in `sw.js` to force immediate update on client devices.
+- **Service Worker Cache-Busting**: Bumped script version parameter inside `index.html` to `v=3.7` and incremented Service Worker cache name to `kshetriva-farms-cache-v17` in `sw.js` to force immediate update on client devices.
+
+#### 2. 🎟️ Coupon Code 'Delivery30' Implementation
+- **Delivery Discount Engine**: Added a bilingual coupon code system checking for code `Delivery30` inside the shopping basket footer.
+- **Dynamic Cost Sync**: Successful coupon application drops standard delivery charges from ₹49 to ₹30, dynamically adjusting checkout totals, totals breakdown labels, and WhatsApp formatted checkout invoices seamlessly.
 
