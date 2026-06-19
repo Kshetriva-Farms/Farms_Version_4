@@ -605,6 +605,37 @@
         </div>
     </div>
 
+    <!-- WhatsApp Contact Details Modal -->
+    <div class="admin-login-modal" id="whatsappDetailsModal" style="z-index: 3000;">
+        <div class="admin-login-content" style="max-width: 450px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative;">
+            <button class="close-admin-login" id="closeDetailsModalBtn" style="top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; cursor: pointer;">&times;</button>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 60px; height: 60px; background: rgba(37, 211, 102, 0.1); color: #25d366; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 1.8rem;">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+                <h3 id="detailsModalTitle" style="color: var(--primary-color); font-size: 1.5rem; font-family: 'Outfit', sans-serif;">WhatsApp Contact</h3>
+                <p id="detailsModalSubtitle" style="color: var(--text-light); font-size: 0.9rem; margin-top: 5px;">Please provide your details to continue.</p>
+            </div>
+            <form id="whatsappDetailsForm">
+                <div class="form-group" style="text-align: left; margin-bottom: 16px;">
+                    <label for="custName" id="lblCustName" style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">Your Name *</label>
+                    <input type="text" id="custName" required placeholder="e.g. Rahul Sharma" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                </div>
+                <div class="form-group" style="text-align: left; margin-bottom: 16px;">
+                    <label for="custPhone" id="lblCustPhone" style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">WhatsApp Number *</label>
+                    <input type="tel" id="custPhone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                </div>
+                <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+                    <label for="custArea" id="lblCustArea" style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">Area / Locality *</label>
+                    <input type="text" id="custArea" required placeholder="e.g. Maryala, Telangana" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                </div>
+                <button type="submit" class="btn btn-whatsapp" id="btnDetailsSubmit" style="width: 100%; border-radius: 10px; padding: 13px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                    <i class="fa-brands fa-whatsapp"></i> Proceed to WhatsApp
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- Admin Dashboard Overlay Panel -->
     <div class="admin-dashboard-overlay" id="adminDashboardOverlay">
         <div class="admin-dashboard-container">
@@ -624,51 +655,104 @@
                 </div>
             </header>
 
+            <!-- Admin Dashboard Tabs -->
+            <div class="admin-tabs">
+                <button class="admin-tab-btn active" id="adminTabCatalogBtn" onclick="switchAdminTab('catalog')">
+                    <i class="fa-solid fa-seedling"></i> Manage Catalog
+                </button>
+                <button class="admin-tab-btn" id="adminTabLeadsBtn" onclick="switchAdminTab('leads')">
+                    <i class="fa-solid fa-address-book"></i> Customer Leads
+                </button>
+            </div>
+
             <main class="admin-dash-main">
-                <div class="admin-stats-row">
-                    <div class="admin-stat-card">
-                        <div class="stat-icon" style="color: var(--primary-color); background: rgba(46,125,50,0.1);"><i
-                                class="fa-solid fa-carrot"></i></div>
-                        <div class="stat-details">
-                            <span class="stat-label">Total Products</span>
-                            <h4 id="statTotalProducts">0</h4>
+                <!-- Manage Catalog Section -->
+                <div id="adminCatalogSection">
+                    <div class="admin-stats-row">
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: var(--primary-color); background: rgba(46,125,50,0.1);"><i
+                                    class="fa-solid fa-carrot"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-label">Total Products</span>
+                                <h4 id="statTotalProducts">0</h4>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: var(--secondary-color); background: rgba(76,175,80,0.1);">
+                                <i class="fa-solid fa-check-double"></i>
+                            </div>
+                            <div class="stat-details">
+                                <span class="stat-label">In Stock</span>
+                                <h4 id="statInStock">0</h4>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: #d32f2f; background: rgba(211,47,47,0.1);"><i
+                                    class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-label">Out of Stock</span>
+                                <h4 id="statOutOfStock">0</h4>
+                            </div>
                         </div>
                     </div>
-                    <div class="admin-stat-card">
-                        <div class="stat-icon" style="color: var(--secondary-color); background: rgba(76,175,80,0.1);">
-                            <i class="fa-solid fa-check-double"></i>
-                        </div>
-                        <div class="stat-details">
-                            <span class="stat-label">In Stock</span>
-                            <h4 id="statInStock">0</h4>
-                        </div>
-                    </div>
-                    <div class="admin-stat-card">
-                        <div class="stat-icon" style="color: #d32f2f; background: rgba(211,47,47,0.1);"><i
-                                class="fa-solid fa-triangle-exclamation"></i></div>
-                        <div class="stat-details">
-                            <span class="stat-label">Out of Stock</span>
-                            <h4 id="statOutOfStock">0</h4>
-                        </div>
+
+                    <div class="admin-table-container">
+                        <table class="admin-products-table">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Product Name (EN / TE)</th>
+                                    <th>Category</th>
+                                    <th>Price & Unit</th>
+                                    <th>Stock Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminProductsList">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div class="admin-table-container">
-                    <table class="admin-products-table">
-                        <thead>
-                            <tr>
-                                <th>Image</th>
-                                <th>Product Name (EN / TE)</th>
-                                <th>Category</th>
-                                <th>Price & Unit</th>
-                                <th>Stock Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminProductsList">
-                            <!-- Populated dynamically -->
-                        </tbody>
-                    </table>
+                <!-- Customer Leads Section -->
+                <div id="adminLeadsSection" style="display: none;">
+                    <div class="admin-stats-row">
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: var(--primary-color); background: rgba(46,125,50,0.1);"><i
+                                    class="fa-solid fa-address-book"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-label">Total Leads</span>
+                                <h4 id="statTotalLeads">0</h4>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card" style="flex: 2; padding: 20px; align-items: center; justify-content: flex-start; flex-direction: row; gap: 15px;">
+                            <div class="stat-icon" style="color: var(--accent-color); background: rgba(245,124,0,0.1);"><i
+                                    class="fa-solid fa-circle-info"></i></div>
+                            <p style="font-size: 0.88rem; color: var(--text-light); line-height: 1.5; margin: 0; text-align: left;">
+                                Customer details (Name, Phone, Locality) are collected when they click the WhatsApp checkout or floating chat buttons. Capped at the <strong>latest 100 leads</strong> to optimize storage.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="admin-table-container" style="margin-top: 20px; overflow-x: auto;">
+                        <table class="admin-products-table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Customer Name</th>
+                                    <th>Phone Number</th>
+                                    <th>Area (Locality)</th>
+                                    <th>Source Type</th>
+                                    <th>Cart Details / Receipt</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminLeadsList">
+                                <!-- Populated dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </main>
         </div>

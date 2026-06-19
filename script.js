@@ -372,7 +372,20 @@ const translations = {
         couponApplyBtn: "Apply",
         couponRemoveBtn: "Remove",
         couponInvalid: "Invalid coupon code",
-        couponApplied: "Coupon '{code}' applied successfully!"
+        couponApplied: "Coupon '{code}' applied successfully!",
+
+        // Phase 3.5: WhatsApp leads modal details
+        detailsModalTitleOrder: "Confirm Order Details",
+        detailsModalTitleChat: "Connect on WhatsApp",
+        detailsModalSubtitleOrder: "Please provide your delivery details to complete your order.",
+        detailsModalSubtitleChat: "Please enter your details to start chatting with us on WhatsApp.",
+        detailsLabelName: "Your Name *",
+        detailsLabelPhone: "WhatsApp Number *",
+        detailsLabelArea: "Area / Locality *",
+        detailsBtnProceed: "Proceed to WhatsApp",
+        detailsPlaceholderName: "e.g. Rahul Sharma",
+        detailsPlaceholderPhone: "e.g. 9876543210",
+        detailsPlaceholderArea: "e.g. Maryala, Telangana"
     },
     te: {
         logoText: "క్షేత్రీవ ఫార్మ్స్",
@@ -519,7 +532,20 @@ const translations = {
         couponApplyBtn: "వర్తింపజేయి",
         couponRemoveBtn: "తొలగించు",
         couponInvalid: "చెల్లని కూపన్ కోడ్",
-        couponApplied: "కూపన్ '{code}' విజయవంతంగా వర్తింపజేయబడింది!"
+        couponApplied: "కూపన్ '{code}' విజయవంతంగా వర్తింపజేయబడింది!",
+
+        // Phase 3.5: WhatsApp leads modal details
+        detailsModalTitleOrder: "ఆర్డర్ వివరాలను ధృవీకరించండి",
+        detailsModalTitleChat: "వాట్సాప్‌లో కనెక్ట్ అవ్వండి",
+        detailsModalSubtitleOrder: "మీ ఆర్డర్‌ను పూర్తి చేయడానికి దయచేసి మీ డెలివరీ వివరాలను అందించండి.",
+        detailsModalSubtitleChat: "వాట్సాప్‌లో మాతో చాట్ చేయడం ప్రారంభించడానికి దయచేసి మీ వివరాలను నమోదు చేయండి.",
+        detailsLabelName: "మీ పేరు *",
+        detailsLabelPhone: "వాట్సాప్ మొబైల్ నంబర్ *",
+        detailsLabelArea: "ప్రాంతం / నివాస స్థలం *",
+        detailsBtnProceed: "వాట్సాప్‌కు వెళ్లండి",
+        detailsPlaceholderName: "ఉదా. రాహుల్ శర్మ",
+        detailsPlaceholderPhone: "ఉదా. 9876543210",
+        detailsPlaceholderArea: "ఉదా. మర్యాల, తెలంగాణ"
     }
 };
 
@@ -756,6 +782,27 @@ function applyLanguage() {
     const couponMessage = document.getElementById('couponMessage');
     if (couponMessage && appliedCoupon) {
         couponMessage.textContent = (dict.couponApplied || "Coupon '{code}' applied!").replace('{code}', appliedCoupon);
+    }
+
+    // Details Modal Labels & Placeholders
+    const lblCustName = document.getElementById('lblCustName');
+    if (lblCustName) lblCustName.textContent = dict.detailsLabelName;
+    const custName = document.getElementById('custName');
+    if (custName) custName.placeholder = dict.detailsPlaceholderName;
+
+    const lblCustPhone = document.getElementById('lblCustPhone');
+    if (lblCustPhone) lblCustPhone.textContent = dict.detailsLabelPhone;
+    const custPhone = document.getElementById('custPhone');
+    if (custPhone) custPhone.placeholder = dict.detailsPlaceholderPhone;
+
+    const lblCustArea = document.getElementById('lblCustArea');
+    if (lblCustArea) lblCustArea.textContent = dict.detailsLabelArea;
+    const custArea = document.getElementById('custArea');
+    if (custArea) custArea.placeholder = dict.detailsPlaceholderArea;
+
+    const btnDetailsSubmit = document.getElementById('btnDetailsSubmit');
+    if (btnDetailsSubmit) {
+        btnDetailsSubmit.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${dict.detailsBtnProceed}`;
     }
 }
 
@@ -1525,7 +1572,7 @@ if (cancelConfirmBtn && acceptConfirmBtn) {
 }
 
 // WhatsApp Cart Checkout Order compilation — Phase 1: Enhanced with basket/discount
-function sendCartWhatsAppOrder() {
+function sendCartWhatsAppOrder(name, phone, area) {
     const cartKeys = Object.keys(cart);
     if (cartKeys.length === 0) return;
 
@@ -1556,6 +1603,12 @@ function sendCartWhatsAppOrder() {
     const dict = translations[currentLang];
     let message = isTe ? `*🌿 కొత్త ఆర్డర్ — క్షేత్రీవ ఫార్మ్స్*\n` : `*🌿 New Order — Kshetriva Farms*\n`;
     message += `================================\n`;
+    if (name && phone && area) {
+        message += isTe ? `👤 *కస్టమర్ పేరు:* ${name}\n` : `👤 *Customer Name:* ${name}\n`;
+        message += isTe ? `📞 *వాట్సాప్ మొబైల్:* ${phone}\n` : `📞 *WhatsApp Phone:* ${phone}\n`;
+        message += isTe ? `📍 *ప్రాంతం:* ${area}\n` : `📍 *Area/Locality:* ${area}\n`;
+        message += `================================\n`;
+    }
 
     // Basket tier info
     if (currentTier) {
@@ -1647,7 +1700,107 @@ if (langToggle) {
 }
 closeCartBtn.addEventListener('click', closeCart);
 cartOverlay.addEventListener('click', closeCart);
-whatsappOrderBtn.addEventListener('click', sendCartWhatsAppOrder);
+whatsappOrderBtn.addEventListener('click', () => openWhatsappDetailsModal('order'));
+
+// Intercept other direct WhatsApp links
+const heroWhatsapp = document.querySelector('.hero-btns .btn-whatsapp');
+if (heroWhatsapp) {
+    heroWhatsapp.removeAttribute('href'); // remove direct wa.me link
+    heroWhatsapp.addEventListener('click', (e) => {
+        e.preventDefault();
+        openWhatsappDetailsModal('chat');
+    });
+}
+const floatWhatsapp = document.querySelector('.whatsapp-float');
+if (floatWhatsapp) {
+    floatWhatsapp.removeAttribute('href'); // remove direct wa.me link
+    floatWhatsapp.addEventListener('click', (e) => {
+        e.preventDefault();
+        openWhatsappDetailsModal('chat');
+    });
+}
+
+// Modal event listeners for details modal
+const detailsModal = document.getElementById('whatsappDetailsModal');
+const closeDetailsModalBtn = document.getElementById('closeDetailsModalBtn');
+if (closeDetailsModalBtn && detailsModal) {
+    closeDetailsModalBtn.addEventListener('click', () => {
+        detailsModal.classList.remove('open');
+    });
+    detailsModal.addEventListener('click', (e) => {
+        if (e.target === detailsModal) {
+            detailsModal.classList.remove('open');
+        }
+    });
+}
+
+const detailsForm = document.getElementById('whatsappDetailsForm');
+if (detailsForm) {
+    detailsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('custName').value.trim();
+        const phone = document.getElementById('custPhone').value.trim();
+        const area = document.getElementById('custArea').value.trim();
+        if (!name || !phone || !area) return;
+        
+        // Cache to localStorage
+        localStorage.setItem('kshetriva_customer_info', JSON.stringify({ name, phone, area }));
+        
+        // Generate lead
+        const timestamp = new Date().toISOString();
+        const type = whatsappTriggerSource.type; // 'order' or 'chat'
+        let cartSummary = "";
+        
+        if (type === 'order') {
+            const cartKeys = Object.keys(cart);
+            let itemsCount = 0;
+            let subtotal = 0;
+            cartKeys.forEach((idStr) => {
+                const id = parseInt(idStr);
+                const rawProduct = products.find(p => p.id === id);
+                if (rawProduct) {
+                    const product = getTranslatedProduct(rawProduct);
+                    const cartEntry = cart[id];
+                    const qty = cartEntry.qty || 1;
+                    const price = cartEntry.optionPrice || parseInt((product.price || '0').replace(/[^\d]/g, ''));
+                    subtotal += price * qty;
+                    itemsCount += qty;
+                }
+            });
+            const uniqueItems = cartKeys.length;
+            const currentTier = detectBasketTier(uniqueItems);
+            let deliveryCharge = appliedCoupon === 'Delivery30' ? 30 : 49;
+            let finalTotal = subtotal;
+            if (currentTier) {
+                const discountAmt = Math.round(subtotal * currentTier.discount * 100) / 100;
+                finalTotal = Math.round((subtotal - discountAmt) * 100) / 100;
+            }
+            finalTotal += deliveryCharge;
+            cartSummary = `${itemsCount} items, Total: ₹${finalTotal}`;
+        } else {
+            cartSummary = "General Enquiry Chat";
+        }
+        
+        const lead = {
+            id: Date.now().toString(),
+            name,
+            phone,
+            area,
+            timestamp,
+            type,
+            cartSummary
+        };
+        
+        saveLeadToDatabase(lead, () => {
+            if (detailsModal) detailsModal.classList.remove('open');
+            if (type === 'order') {
+                sendCartWhatsAppOrder(name, phone, area);
+            } else {
+                sendChatWhatsAppMessage(name, phone, area);
+            }
+        });
+    });
+}
 
 // Filtering Logic
 filterBtns.forEach(btn => {
@@ -1832,6 +1985,234 @@ function seedDatabase() {
     }).catch(err => console.error("Database seeding failed:", err));
 }
 
+/* ==========================================================================
+   Phase 3.5: WhatsApp Lead Capture & Secure Admin View
+   ========================================================================== */
+
+let whatsappTriggerSource = { type: 'chat' };
+
+// Open Details Modal and Pre-fill Cached Data
+function openWhatsappDetailsModal(type) {
+    whatsappTriggerSource.type = type;
+    const dict = translations[currentLang];
+    
+    const detailsModalTitle = document.getElementById('detailsModalTitle');
+    const detailsModalSubtitle = document.getElementById('detailsModalSubtitle');
+    
+    if (type === 'order') {
+        if (detailsModalTitle) detailsModalTitle.textContent = dict.detailsModalTitleOrder || "Confirm Order Details";
+        if (detailsModalSubtitle) detailsModalSubtitle.textContent = dict.detailsModalSubtitleOrder || "Please provide your delivery details to complete your order.";
+    } else {
+        if (detailsModalTitle) detailsModalTitle.textContent = dict.detailsModalTitleChat || "Connect on WhatsApp";
+        if (detailsModalSubtitle) detailsModalSubtitle.textContent = dict.detailsModalSubtitleChat || "Please enter your details to start chatting with us on WhatsApp.";
+    }
+    
+    // Auto-fill from localStorage if customer info exists
+    const cachedInfo = localStorage.getItem('kshetriva_customer_info');
+    if (cachedInfo) {
+        try {
+            const info = JSON.parse(cachedInfo);
+            if (info.name) document.getElementById('custName').value = info.name;
+            if (info.phone) document.getElementById('custPhone').value = info.phone;
+            if (info.area) document.getElementById('custArea').value = info.area;
+        } catch (e) {
+            console.error("Error parsing cached customer info:", e);
+        }
+    }
+    
+    const detailsModal = document.getElementById('whatsappDetailsModal');
+    if (detailsModal) {
+        detailsModal.classList.add('open');
+    }
+}
+
+// Format and send general WhatsApp message
+function sendChatWhatsAppMessage(name, phone, area) {
+    const isTe = currentLang === 'te';
+    const msg = isTe 
+        ? `నమస్తే క్షేత్రీవ ఫార్మ్స్,\nనా వివరాలు:\n👤 పేరు: ${name}\n📞 మొబైల్: ${phone}\n📍 ప్రాంతం: ${area}\n\nనేను మీతో చాట్ చేయాలనుకుంటున్నాను మరియు ఆర్డర్ చేయాలనుకుంటున్నాను.`
+        : `Hello Kshetriva Farms,\nMy Details:\n👤 Name: ${name}\n📞 Phone: ${phone}\n📍 Area/Locality: ${area}\n\nI would like to enquire about ordering fresh vegetables.`;
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://wa.me/918374276995?text=${encoded}`, '_blank');
+}
+
+// Database Lead Saving Logic
+function saveLeadToDatabase(lead, callback) {
+    if (useFirebase && db) {
+        db.collection("leads").doc(lead.id).set(lead)
+            .then(() => {
+                console.log("Lead saved successfully to Firestore.");
+                cleanupFirestoreLeads(); // Cap Firestore leads at 100
+                if (callback) callback();
+            })
+            .catch((err) => {
+                console.error("Failed to save lead to Firestore, falling back to LocalStorage:", err);
+                saveLeadToLocalStorage(lead);
+                if (callback) callback();
+            });
+    } else {
+        saveLeadToLocalStorage(lead);
+        if (callback) callback();
+    }
+}
+
+function saveLeadToLocalStorage(lead) {
+    let leads = [];
+    const localLeads = localStorage.getItem('kshetriva_leads');
+    if (localLeads) {
+        try {
+            leads = JSON.parse(localLeads);
+        } catch (e) {
+            console.error("Error parsing offline leads:", e);
+        }
+    }
+    leads.unshift(lead);
+    leads = leads.slice(0, 100); // Cap at latest 100 leads
+    localStorage.setItem('kshetriva_leads', JSON.stringify(leads));
+}
+
+function cleanupFirestoreLeads() {
+    if (!useFirebase || !db) return;
+    db.collection("leads").orderBy("timestamp", "desc").get()
+        .then((snapshot) => {
+            if (snapshot.size > 100) {
+                const batch = db.batch();
+                for (let i = 100; i < snapshot.size; i++) {
+                    batch.delete(snapshot.docs[i].ref);
+                }
+                batch.commit().then(() => {
+                    console.log("Firestore leads batch deleted. Capped at 100.");
+                }).catch(err => console.error("Firestore leads batch cleanup failed:", err));
+            }
+        })
+        .catch(err => console.error("Error fetching leads for cleanup:", err));
+}
+
+// Admin Tab Switch Logic
+function switchAdminTab(tabName) {
+    const tabCatalogBtn = document.getElementById('adminTabCatalogBtn');
+    const tabLeadsBtn = document.getElementById('adminTabLeadsBtn');
+    const catalogSection = document.getElementById('adminCatalogSection');
+    const leadsSection = document.getElementById('adminLeadsSection');
+    const addNewProductBtn = document.querySelector('.admin-header-actions button[onclick="openProductFormModal()"]');
+    
+    if (tabName === 'leads') {
+        if (tabCatalogBtn) tabCatalogBtn.classList.remove('active');
+        if (tabLeadsBtn) tabLeadsBtn.classList.add('active');
+        if (catalogSection) catalogSection.style.display = 'none';
+        if (leadsSection) leadsSection.style.display = 'block';
+        if (addNewProductBtn) addNewProductBtn.style.display = 'none';
+        renderAdminLeads();
+    } else {
+        if (tabCatalogBtn) tabCatalogBtn.classList.add('active');
+        if (tabLeadsBtn) tabLeadsBtn.classList.remove('active');
+        if (catalogSection) catalogSection.style.display = 'block';
+        if (leadsSection) leadsSection.style.display = 'none';
+        if (addNewProductBtn) addNewProductBtn.style.display = 'inline-block';
+        renderAdminProducts();
+    }
+    updateAdminStats();
+}
+
+// Render Admin Customer Leads
+function renderAdminLeads() {
+    const listContainer = document.getElementById('adminLeadsList');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+    
+    const showLeads = (leadsList) => {
+        if (!leadsList || leadsList.length === 0) {
+            listContainer.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #888; padding: 30px;">
+                        <i class="fa-solid fa-users-slash" style="font-size: 2rem; margin-bottom: 10px; display: block; color: var(--primary-color);"></i>
+                        No customer leads registered yet.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        leadsList.forEach((lead) => {
+            const tr = document.createElement('tr');
+            
+            const dateStr = new Date(lead.timestamp).toLocaleString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const badgeClass = lead.type === 'order' ? 'order' : 'chat';
+            const badgeLabel = lead.type === 'order' ? 'Order' : 'Chat';
+            
+            tr.innerHTML = `
+                <td style="font-size: 0.88rem; font-weight: 500; color: #555;">${dateStr}</td>
+                <td style="font-weight: 600; color: var(--text-dark);">${lead.name}</td>
+                <td>
+                    <a href="tel:${lead.phone}" class="lead-phone-link"><i class="fa-solid fa-phone"></i> ${lead.phone}</a>
+                    <a href="https://wa.me/91${lead.phone}" target="_blank" class="lead-wa-chat-btn" title="Chat on WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                </td>
+                <td style="font-weight: 500; color: #555;">${lead.area}</td>
+                <td><span class="lead-badge ${badgeClass}">${badgeLabel}</span></td>
+                <td>
+                    <div class="lead-cart-summary">${lead.cartSummary || '-'}</div>
+                </td>
+                <td>
+                    <button class="admin-action-btn delete" onclick="deleteLead('${lead.id}')" title="Delete Lead"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            listContainer.appendChild(tr);
+        });
+    };
+
+    if (useFirebase && db) {
+        db.collection("leads").orderBy("timestamp", "desc").limit(100).get()
+            .then((snapshot) => {
+                const leads = [];
+                snapshot.forEach(doc => leads.push(doc.data()));
+                showLeads(leads);
+            })
+            .catch((err) => {
+                console.error("Error loading leads from Firestore:", err);
+                // Fallback to local storage
+                const localLeads = localStorage.getItem('kshetriva_leads');
+                showLeads(localLeads ? JSON.parse(localLeads) : []);
+            });
+    } else {
+        const localLeads = localStorage.getItem('kshetriva_leads');
+        showLeads(localLeads ? JSON.parse(localLeads) : []);
+    }
+}
+
+// Delete individual lead
+function deleteLead(leadId) {
+    if (confirm("Are you sure you want to delete this customer lead?")) {
+        if (useFirebase && db) {
+            db.collection("leads").doc(leadId).delete()
+                .then(() => {
+                    console.log("Lead deleted from Firestore.");
+                    renderAdminLeads();
+                    updateAdminStats();
+                })
+                .catch(err => console.error("Error deleting lead from Firestore:", err));
+        } else {
+            let leads = [];
+            const localLeads = localStorage.getItem('kshetriva_leads');
+            if (localLeads) {
+                try {
+                    leads = JSON.parse(localLeads);
+                } catch (e) {}
+            }
+            leads = leads.filter(l => l.id !== leadId);
+            localStorage.setItem('kshetriva_leads', JSON.stringify(leads));
+            renderAdminLeads();
+            updateAdminStats();
+        }
+    }
+}
+
 // Router for hidden hash #admin route
 window.addEventListener('hashchange', checkHashRoute);
 window.addEventListener('load', checkHashRoute);
@@ -1879,8 +2260,7 @@ function closeAdminLogin() {
 function openAdminDashboard() {
     document.getElementById('adminLoginModal').classList.remove('open');
     document.getElementById('adminDashboardOverlay').classList.add('open');
-    renderAdminProducts();
-    updateAdminStats();
+    switchAdminTab('catalog');
 }
 
 function closeAdminDashboard() {
@@ -1995,15 +2375,34 @@ function updateAdminStats() {
     const inStockEl = document.getElementById('statInStock');
     const outStockEl = document.getElementById('statOutOfStock');
 
-    if (!totalEl || !inStockEl || !outStockEl) return;
+    if (totalEl && inStockEl && outStockEl) {
+        const total = products.length;
+        const inStock = products.filter(p => p.inStock !== false).length;
+        const outStock = total - inStock;
 
-    const total = products.length;
-    const inStock = products.filter(p => p.inStock !== false).length;
-    const outStock = total - inStock;
+        totalEl.textContent = total;
+        inStockEl.textContent = inStock;
+        outStockEl.textContent = outStock;
+    }
 
-    totalEl.textContent = total;
-    inStockEl.textContent = inStock;
-    outStockEl.textContent = outStock;
+    // Update total leads count
+    const totalLeadsEl = document.getElementById('statTotalLeads');
+    if (totalLeadsEl) {
+        if (useFirebase && db) {
+            db.collection("leads").get().then((snapshot) => {
+                totalLeadsEl.textContent = snapshot.size;
+            }).catch(err => console.error("Error fetching leads count:", err));
+        } else {
+            const localLeads = localStorage.getItem('kshetriva_leads');
+            let count = 0;
+            if (localLeads) {
+                try {
+                    count = JSON.parse(localLeads).length;
+                } catch (e) {}
+            }
+            totalLeadsEl.textContent = count;
+        }
+    }
 }
 
 // Toggle Stock level dynamically
