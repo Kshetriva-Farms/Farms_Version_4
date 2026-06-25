@@ -424,3 +424,10 @@ For queries, orders, or partner programs:
 - **Ordered Products in Quantity**: Replaced the legacy demand leaderboard with a detailed packing dashboard showing aggregated weights and variant counts (e.g. `2 Katta × 5`, `500g × 2`).
 - **Logistics Clean-up**: Removed "Delivery Status" select options, delivery columns, and farmer ownership mappings from the Logistics Table and order catalog modal to satisfy security and privacy constraints.
 
+#### 3. 🔒 Week-Locking, Data Clearing, & Administration Enhancements (Version 4.1)
+- **Completed Week-Locking**: Implemented dynamic week status detection (`Present`, `Incomplete`, `Locked`). A previous week is locked if all its orders are marked as `'delivered'`. Deleting leads/orders or clearing directories for locked weeks is blocked.
+- **Granular Week-Specific Clearing**: Replaced the global "Empty Order Book" button with a "Clear Current Week" function. Added a week-wise "Clear" trigger under Company Statistics (disabled for completed locked weeks).
+- **Custom Order Date & Delivery Fees**: Added date-time and delivery charge override input fields in the Create/Edit Manual Order modal to allow retroactively placing or correcting orders.
+- **Scoping Leaderboard**: Scoped the Founder packing breakdown console ("Ordered Products in Quantity") to present week quantities only.
+- **Local Sandbox & Mock Logins**: Configured `localhost` environment fallback to protect live production Firestore from manual testing data. Mock admin credentials (`admin@kshetrivafarms.com` / `admin123`) autofill on local launches. Added a quick clear query tool (`?clearLocalLeads=true`) to wipe local storage testing leads.
+
