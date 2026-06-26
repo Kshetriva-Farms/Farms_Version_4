@@ -1208,6 +1208,19 @@
                     </div>
                 </div>
                 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ordDiscountPercentage">Discount (%)</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" id="ordDiscountPercentage" min="0" max="100" required value="0" placeholder="e.g. 10" style="flex: 1;">
+                            <span id="ordDiscountSuggestBadge" style="font-size: 0.85rem; padding: 4px 8px; background: #e0f2f1; color: #00796b; border-radius: 12px; font-weight: 600; display: none; white-space: nowrap; cursor: pointer;" title="Click to apply suggested discount">Suggest: 0%</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="visibility: hidden;">
+                        <!-- Spacer for grid alignment -->
+                    </div>
+                </div>
+                
                 <!-- Products Checklist -->
                 <div style="margin-top: 15px; text-align: left;">
                     <label style="font-weight: 600; font-size: 0.9rem; color: var(--text-dark); display: block; margin-bottom: 10px;">Select Products Ordered</label>

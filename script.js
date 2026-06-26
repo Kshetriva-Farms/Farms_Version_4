@@ -2478,9 +2478,22 @@ function renderAdminLeads() {
             const badgeLabel = lead.type === 'order' ? 'Order' : 'Chat';
             
             const isLocked = isLeadLocked(lead, leadsList);
-            const deleteBtnHtml = isLocked
-                ? `<button class="admin-action-btn delete" disabled style="opacity: 0.5; cursor: not-allowed; background-color: #eee; border-color: #ddd; color: #aaa;" title="Locked (Completed Week)"><i class="fa-solid fa-lock"></i></button>`
-                : `<button class="admin-action-btn delete" onclick="deleteLead('${lead.id}')" title="Delete Lead"><i class="fa-solid fa-trash-can"></i></button>`;
+            let actionsHtml = '';
+            if (lead.type === 'order') {
+                actionsHtml = isLocked
+                    ? `<div class="admin-action-btns">
+                            <button class="admin-action-btn edit" onclick="openOrderFormModal('${lead.id}')" title="Edit Order Details"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="admin-action-btn delete" disabled style="opacity: 0.5; cursor: not-allowed; background-color: #eee; border-color: #ddd; color: #aaa;" title="Locked (Completed Week)"><i class="fa-solid fa-lock"></i></button>
+                       </div>`
+                    : `<div class="admin-action-btns">
+                            <button class="admin-action-btn edit" onclick="openOrderFormModal('${lead.id}')" title="Edit Order Details"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="admin-action-btn delete" onclick="deleteLead('${lead.id}')" title="Delete Order"><i class="fa-solid fa-trash-can"></i></button>
+                       </div>`;
+            } else {
+                actionsHtml = isLocked
+                    ? `<button class="admin-action-btn delete" disabled style="opacity: 0.5; cursor: not-allowed; background-color: #eee; border-color: #ddd; color: #aaa;" title="Locked (Completed Week)"><i class="fa-solid fa-lock"></i></button>`
+                    : `<button class="admin-action-btn delete" onclick="deleteLead('${lead.id}')" title="Delete Lead"><i class="fa-solid fa-trash-can"></i></button>`;
+            }
             
             if (isLocked) {
                 tr.style.opacity = '0.85';
@@ -2500,7 +2513,7 @@ function renderAdminLeads() {
                     <div class="lead-cart-summary">${lead.cartSummary || '-'}</div>
                 </td>
                 <td>
-                    ${deleteBtnHtml}
+                    ${actionsHtml}
                 </td>
             `;
             listContainer.appendChild(tr);
@@ -3636,6 +3649,47 @@ function openOrderFormModal(leadId) {
     const form = document.getElementById('orderEntryForm');
     const listCheck = document.getElementById('orderProductsChecklist');
     
+    // Track if user manually edits discount percentage
+    let isDiscountManuallyEdited = false;
+    const discountInput = document.getElementById('ordDiscountPercentage');
+    
+    const updateDiscountSuggestionVisibility = () => {
+        const checkboxes = document.querySelectorAll('.chk-order-prod:checked');
+        const uniqueItemCount = checkboxes.length;
+        const tier = detectBasketTier(uniqueItemCount);
+        const suggestedPct = tier ? Math.round(tier.discount * 100) : 0;
+        
+        const badge = document.getElementById('ordDiscountSuggestBadge');
+        if (badge) {
+            if (suggestedPct > 0) {
+                badge.textContent = `Suggest: ${suggestedPct}%`;
+                badge.style.display = 'inline-block';
+                badge.onclick = () => {
+                    if (discountInput) {
+                        discountInput.value = suggestedPct;
+                        isDiscountManuallyEdited = false;
+                        updateDiscountSuggestionVisibility();
+                    }
+                };
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // Auto-update if not manually edited by the user
+        if (!isDiscountManuallyEdited && discountInput) {
+            discountInput.value = suggestedPct;
+        }
+    };
+
+    if (discountInput) {
+        discountInput.value = 0;
+        discountInput.oninput = () => {
+            isDiscountManuallyEdited = true;
+            updateDiscountSuggestionVisibility();
+        };
+    }
+    
     const initializeForm = () => {
         idField.value = leadId || '';
         form.reset();
@@ -3668,6 +3722,7 @@ function openOrderFormModal(leadId) {
             chk.addEventListener('change', (e) => {
                 sel.disabled = !e.target.checked;
                 qty.disabled = !e.target.checked;
+                updateDiscountSuggestionVisibility();
             });
             
             listCheck.appendChild(itemDiv);
@@ -3675,6 +3730,7 @@ function openOrderFormModal(leadId) {
         
         if (leadId) {
             titleEl.textContent = "Edit Order Details";
+            isDiscountManuallyEdited = true; // don't auto-overwrite loaded values
             
             fetchAllLeads().then((leads) => {
                 const o = leads.find(l => l.id === leadId);
@@ -3708,6 +3764,24 @@ function openOrderFormModal(leadId) {
                             }
                         });
                     }
+
+                    // Populate discount percentage
+                    let subtotal = 0;
+                    if (o.items) {
+                        o.items.forEach(item => {
+                            subtotal += (item.price || 0) * (item.qty || 0);
+                        });
+                    }
+                    let discPct = 0;
+                    if (o.discountPercentage !== undefined) {
+                        discPct = o.discountPercentage;
+                    } else if (o.discountAmount && subtotal > 0) {
+                        discPct = Math.round((o.discountAmount / subtotal) * 100);
+                    }
+                    if (discountInput) {
+                        discountInput.value = discPct;
+                    }
+                    updateDiscountSuggestionVisibility();
                 }
             });
         } else {
@@ -3716,6 +3790,12 @@ function openOrderFormModal(leadId) {
             const offset = now.getTimezoneOffset() * 60000;
             const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
             document.getElementById('ordDate').value = localISOTime;
+            
+            isDiscountManuallyEdited = false;
+            if (discountInput) {
+                discountInput.value = 0;
+            }
+            updateDiscountSuggestionVisibility();
         }
         
         document.getElementById('orderFormModal').classList.add('open');
@@ -3779,8 +3859,10 @@ function saveManualOrder(e) {
         }
     });
     
+    const discountPercentage = parseFloat(document.getElementById('ordDiscountPercentage').value) || 0;
+    const discountAmount = Math.round(subtotal * (discountPercentage / 100) * 100) / 100;
     const deliveryChargeVal = parseInt(document.getElementById('ordDeliveryCharge').value) || 0;
-    const totalAmount = subtotal + deliveryChargeVal;
+    const totalAmount = Math.round((subtotal - discountAmount + deliveryChargeVal) * 100) / 100;
     const cartSummary = `${itemsCount} items, Total: ₹${totalAmount}`;
     
     const lead = {
@@ -3793,7 +3875,8 @@ function saveManualOrder(e) {
         cartSummary,
         items,
         totalAmount,
-        discountAmount: 0,
+        discountAmount,
+        discountPercentage,
         deliveryCharge: deliveryChargeVal,
         status,
         coupon: ''
