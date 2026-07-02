@@ -2012,6 +2012,7 @@ if (detailsForm) {
                         price: price,
                         total: price * qty,
                         costPrice: itemCostPrice,
+                        pricePerUnit: basePrice,
                         category: rawProduct.category
                     });
                 }
@@ -3860,6 +3861,7 @@ function saveManualOrder(e) {
                 price: price,
                 total: price * qty,
                 costPrice: itemCostPrice,
+                pricePerUnit: basePrice,
                 category: rawProduct.category
             });
             
@@ -3982,47 +3984,13 @@ function refreshActiveTab() {
     } else if (founderSec && founderSec.style.display === 'block') {
         renderFounderInsights();
     } else if (statsSec && statsSec.style.display === 'block') {
-        const costSec = document.getElementById('statsCostSubSection');
-        if (costSec && costSec.style.display === 'block') {
-            renderProductCostManagement();
-        } else {
-            renderCompanyAnalytics();
-        }
+        renderCompanyAnalytics();
     }
     updateAdminStats();
 }
 
 function switchStatsSubTab(subTab) {
-    const analyticsBtn = document.getElementById('subTabAnalyticsBtn');
-    const costBtn = document.getElementById('subTabCostBtn');
-    const analyticsSec = document.getElementById('statsAnalyticsSubSection');
-    const costSec = document.getElementById('statsCostSubSection');
-    
-    if (!analyticsBtn || !costBtn || !analyticsSec || !costSec) return;
-    
-    if (subTab === 'analytics') {
-        analyticsBtn.classList.add('active-sub-tab');
-        analyticsBtn.style.background = 'var(--primary-color)';
-        analyticsBtn.style.color = 'white';
-        costBtn.classList.remove('active-sub-tab');
-        costBtn.style.background = '#eee';
-        costBtn.style.color = '#555';
-        
-        analyticsSec.style.display = 'block';
-        costSec.style.display = 'none';
-        renderCompanyAnalytics();
-    } else {
-        costBtn.classList.add('active-sub-tab');
-        costBtn.style.background = 'var(--primary-color)';
-        costBtn.style.color = 'white';
-        analyticsBtn.classList.remove('active-sub-tab');
-        analyticsBtn.style.background = '#eee';
-        analyticsBtn.style.color = '#555';
-        
-        analyticsSec.style.display = 'none';
-        costSec.style.display = 'block';
-        renderProductCostManagement();
-    }
+    renderCompanyAnalytics();
 }
 
 function getWeekRangeString(dateString) {
@@ -4149,13 +4117,15 @@ function renderCompanyAnalytics() {
                     
                     weeks[weekStr].expenses += itemExpense;
                     
+                    const basePrice = item.pricePerUnit !== undefined ? item.pricePerUnit : (prod ? (prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, ''))) : item.price);
                     if (!weeks[weekStr].products[item.id]) {
                         weeks[weekStr].products[item.id] = {
                             id: item.id,
                             name: item.name,
                             qty: 0,
                             unit: prod ? prod.unit : 'unit',
-                            price: prod ? (prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, ''))) : item.price,
+                            price: basePrice,
+                            pricePerUnit: basePrice,
                             costPrice: baseCostPrice,
                             totalSales: 0,
                             totalExpense: 0
@@ -4322,11 +4292,13 @@ function viewWeekDetails(weekKey) {
         tr.innerHTML = `
             <td style="font-weight: 600; color: var(--text-dark);">${displayName}</td>
             <td>${formattedQty} ${displayUnit}</td>
-            <td>₹${pObj.price}</td>
+            <td>
+                <input type="number" id="inputWeekSell_${weekKey}_${pId}" value="${pObj.pricePerUnit !== undefined ? pObj.pricePerUnit : pObj.price}" min="0" style="width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+            </td>
             <td>
                 <div style="display: flex; align-items: center; gap: 5px;">
                     <input type="number" id="inputWeekCost_${weekKey}_${pId}" value="${pObj.costPrice}" min="0" style="width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
-                    <button class="btn btn-primary" onclick="saveWeekProductCost('${weekKey}', ${pId}, this)" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 8px;" title="Save for this week only">
+                    <button class="btn btn-primary" onclick="saveWeekProductPrices('${weekKey}', ${pId}, this)" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 8px;" title="Save sell & cost prices for this week only">
                         <i class="fa-solid fa-check"></i>
                     </button>
                 </div>
@@ -4384,10 +4356,13 @@ function viewWeekDetails(weekKey) {
     container.scrollIntoView({ behavior: 'smooth' });
 }
 
-function saveWeekProductCost(weekKey, productId, btnEl) {
-    const input = document.getElementById(`inputWeekCost_${weekKey}_${productId}`);
-    if (!input) return;
-    const newCost = parseInt(input.value) || 0;
+function saveWeekProductPrices(weekKey, productId, btnEl) {
+    const costInput = document.getElementById(`inputWeekCost_${weekKey}_${productId}`);
+    const sellInput = document.getElementById(`inputWeekSell_${weekKey}_${productId}`);
+    if (!costInput || !sellInput) return;
+    
+    const newCost = parseInt(costInput.value) || 0;
+    const newSell = parseInt(sellInput.value) || 0;
     
     fetchAllLeads().then((leads) => {
         const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
@@ -4399,11 +4374,31 @@ function saveWeekProductCost(weekKey, productId, btnEl) {
         }
         
         ordersToUpdate.forEach(o => {
+            let orderTotalDiff = 0;
             o.items.forEach(item => {
                 if (item.id === productId) {
                     item.costPrice = newCost;
+                    
+                    const oldItemTotal = item.total || (item.price * item.qty);
+                    const prod = products.find(p => p.id === productId);
+                    const multiplier = prod ? getOptionMultiplier(prod, item.option, item.price) : 1;
+                    
+                    const newOptionPrice = Math.round(newSell * multiplier);
+                    item.price = newOptionPrice;
+                    item.total = newOptionPrice * item.qty;
+                    item.pricePerUnit = newSell;
+                    
+                    orderTotalDiff += (item.total - oldItemTotal);
                 }
             });
+            o.totalAmount = Math.round((o.totalAmount + orderTotalDiff) * 100) / 100;
+            
+            if (o.cartSummary) {
+                const parts = o.cartSummary.split(', Total: ₹');
+                if (parts.length === 2) {
+                    o.cartSummary = `${parts[0]}, Total: ₹${o.totalAmount}`;
+                }
+            }
         });
         
         if (useFirebase && db) {
@@ -4412,9 +4407,9 @@ function saveWeekProductCost(weekKey, productId, btnEl) {
                 batch.set(db.collection("leads").doc(o.id), o);
             });
             batch.commit().then(() => {
-                console.log(`Updated week product cost for product ID ${productId} in week ${weekKey}`);
+                console.log(`Updated week product prices for product ID ${productId} in week ${weekKey}`);
                 refreshAfterWeekCostUpdate(weekKey, btnEl);
-            }).catch(err => console.error("Firestore batch update week product cost failed:", err));
+            }).catch(err => console.error("Firestore batch update week product prices failed:", err));
         } else {
             let allLeads = [];
             const localLeads = localStorage.getItem('kshetriva_leads');
@@ -4458,79 +4453,6 @@ function refreshAfterWeekCostUpdate(weekKey, btnEl) {
 function closeWeekDetails() {
     const container = document.getElementById('weekDetailsContainer');
     if (container) container.style.display = 'none';
-}
-
-function renderProductCostManagement() {
-    const list = document.getElementById('statsCostManagementList');
-    if (!list) return;
-    list.innerHTML = '';
-    
-    products.forEach(p => {
-        const tr = document.createElement('tr');
-        const costPrice = p.costPrice !== undefined ? p.costPrice : Math.round(p.pricePerUnit * 0.6);
-        
-        tr.innerHTML = `
-            <td><img src="${p.image}" alt="${p.name}" class="admin-table-img" width="40" height="40"></td>
-            <td>
-                <div class="admin-table-title">${p.name}</div>
-                <div class="admin-table-subtitle">ID: ${p.id} | ${p.category}</div>
-            </td>
-            <td>${p.unit}</td>
-            <td><strong>${p.price}</strong> (${p.pricePerUnit})</td>
-            <td>
-                <input type="number" id="inputCost_${p.id}" value="${costPrice}" min="0" class="order-qty-input" style="width: 80px; padding: 6px;">
-            </td>
-            <td>
-                <button class="btn btn-primary" onclick="saveProductCostPrice(this, '${p.docId || ''}', ${p.id})" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 12px; transition: all 0.2s ease;">
-                    <i class="fa-solid fa-check"></i> Save
-                </button>
-            </td>
-        `;
-        list.appendChild(tr);
-    });
-}
-
-function saveProductCostPrice(btnEl, docId, id) {
-    const input = document.getElementById(`inputCost_${id}`);
-    if (!input) return;
-    const costVal = parseInt(input.value) || 0;
-    
-    const showTemporarySuccess = () => {
-        if (btnEl) {
-            const originalContent = btnEl.innerHTML;
-            btnEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Saved`;
-            btnEl.style.backgroundColor = "#2e7d32";
-            btnEl.style.borderColor = "#2e7d32";
-            btnEl.disabled = true;
-            setTimeout(() => {
-                btnEl.innerHTML = originalContent;
-                btnEl.style.backgroundColor = "";
-                btnEl.style.borderColor = "";
-                btnEl.disabled = false;
-            }, 1500);
-        }
-    };
-    
-    if (useFirebase && db && docId) {
-        db.collection("products").doc(docId).update({
-            costPrice: costVal
-        }).then(() => {
-            console.log(`Cost price for product ID ${id} saved to Firestore: ₹${costVal}`);
-            const product = products.find(p => p.id === id);
-            if (product) product.costPrice = costVal;
-            showTemporarySuccess();
-        }).catch(err => {
-            console.error("Firestore product cost update error:", err);
-            alert("Failed to save to dynamic database.");
-        });
-    } else {
-        const product = products.find(p => p.id === id);
-        if (product) {
-            product.costPrice = costVal;
-            saveProductsLocal();
-            showTemporarySuccess();
-        }
-    }
 }
 
 
