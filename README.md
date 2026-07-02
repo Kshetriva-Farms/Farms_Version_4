@@ -9,7 +9,7 @@
 
 Kshetriva Farms is a premium, high-performance single-page web application designed to connect hardworking local farmers from **Maryala, Telangana** directly with urban families. By eliminating middle-men, the platform ensures that families receive fresh, chemical-safe vegetables at fair prices, while local growers earn a sustainable, direct-to-consumer income.
 
-In **Version 4**, the platform has matured into a comprehensive **Business Administration and Customer Portal** adding detailed **Company Statistics & Analytics**, a **Temporal Weekly Product Cost Management** engine, detailed **Ordered Product break-downs** (for packing logistics), and an updated **Logistics Console**.
+In **Version 4.5**, the platform has matured into a comprehensive **Business Administration and Customer Portal** adding **historical weekly price/cost decoupling**, a **unified weekly price/cost editor**, client-side **Excel/CSV exporting**, **Telugu localization matching fixes** for unit multipliers, and an updated **Logistics Console**.
 
 ---
 
@@ -430,4 +430,12 @@ For queries, orders, or partner programs:
 - **Custom Order Date & Delivery Fees**: Added date-time and delivery charge override input fields in the Create/Edit Manual Order modal to allow retroactively placing or correcting orders.
 - **Scoping Leaderboard**: Scoped the Founder packing breakdown console ("Ordered Products in Quantity") to present week quantities only.
 - **Local Sandbox & Mock Logins**: Configured `localhost` environment fallback to protect live production Firestore from manual testing data. Mock admin credentials (`admin@kshetrivafarms.com` / `admin123`) autofill on local launches. Added a quick clear query tool (`?clearLocalLeads=true`) to wipe local storage testing leads.
+
+### 🗓️ July 2, 2026
+
+#### 1. 📊 Unified Weekly Price/Cost Decoupling & CSV Export (Version 4.5)
+- **Historical Price Decoupling**: Order items now capture `pricePerUnit` snapshot at checkout. The statistics breakdown dynamically uses this historical snapshot instead of live catalog prices, preventing active price changes from retrospectively altering older sales metrics.
+- **Unified Weekly Price & Cost Editor**: Redesigned the "Product Sales & Profits Breakdown" detailed view to display both selling price and cost price as inline editable fields. Updates are saved strictly for that specific week's orders.
+- **Excel/CSV Export Engine**: Added a "Download Excel/CSV" button in the Customer Leads list. Formats and exports all captured customer leads and order entries client-side using robust browser `Blob` APIs.
+- **Leafy Greens Quantity Mismatch Fix**: Resolved an issue where leafy greens (bunch/katta) ordered under Telugu translations (e.g. `"2 కట్ట"`) resolved incorrectly in dynamic quantity summing. Added Telugu string normalization in `getOptionMultiplier()` and snapshot the multiplier on checkout to future-proof packing logistics.
 

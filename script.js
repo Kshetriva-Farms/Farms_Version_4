@@ -2004,6 +2004,10 @@ if (detailsForm) {
                     const basePrice = rawProduct.pricePerUnit || parseInt((rawProduct.price || '0').replace(/[^\d]/g, ''));
                     const itemCostPrice = (rawProduct.costPrice !== undefined) ? rawProduct.costPrice : Math.round(basePrice * 0.6);
                     
+                    const qtyOptions = getQuantityOptions(rawProduct);
+                    const optObj = qtyOptions.find(o => o.value === cartEntry.optionValue || o.label === cartEntry.optionLabel) || qtyOptions[0];
+                    const multiplier = optObj ? (optObj.multiplier || 1) : 1;
+                    
                     items.push({
                         id: id,
                         name: product.name,
@@ -2013,6 +2017,7 @@ if (detailsForm) {
                         total: price * qty,
                         costPrice: itemCostPrice,
                         pricePerUnit: basePrice,
+                        multiplier: multiplier,
                         category: rawProduct.category
                     });
                 }
@@ -3540,7 +3545,7 @@ function renderLeaderboard(ordersOnly) {
         if (o.items) {
             o.items.forEach(item => {
                 const prod = products.find(p => p.id === item.id);
-                const multiplier = prod ? getOptionMultiplier(prod, item.option, item.price) : 1;
+                const multiplier = item.multiplier !== undefined ? item.multiplier : (prod ? getOptionMultiplier(prod, item.option, item.price) : 1);
                 const baseQty = item.qty * multiplier;
                 
                 if (!cropSales[item.id]) {
@@ -3849,6 +3854,7 @@ function saveManualOrder(e) {
             const opts = getQuantityOptions(rawProduct);
             const optObj = opts.find(o => o.value === selectedOption) || opts[0];
             const price = optObj ? optObj.price : rawProduct.pricePerUnit;
+            const multiplier = optObj ? (optObj.multiplier || 1) : 1;
             
             const basePrice = rawProduct.pricePerUnit || parseInt((rawProduct.price || '0').replace(/[^\d]/g, ''));
             const itemCostPrice = (rawProduct.costPrice !== undefined) ? rawProduct.costPrice : Math.round(basePrice * 0.6);
@@ -3862,6 +3868,7 @@ function saveManualOrder(e) {
                 total: price * qty,
                 costPrice: itemCostPrice,
                 pricePerUnit: basePrice,
+                multiplier: multiplier,
                 category: rawProduct.category
             });
             
@@ -4105,12 +4112,20 @@ function isLeadLocked(lead, leads) {
 function getOptionMultiplier(product, optionStr, itemPrice) {
     const opts = getQuantityOptions(product);
     if (optionStr) {
-        const match = opts.find(o => 
-            o.value === optionStr || 
-            o.label === optionStr || 
-            o.label.toLowerCase().includes(optionStr.toLowerCase()) || 
-            optionStr.toLowerCase().includes(o.label.toLowerCase())
-        );
+        let normalized = optionStr.toLowerCase()
+            .replace(/కట్ట/g, 'katta')
+            .replace(/కిలో/g, 'kg')
+            .replace(/పీస్|పీసెస్/g, 'piece');
+            
+        const match = opts.find(o => {
+            const labelLower = o.label.toLowerCase();
+            const valueLower = o.value.toLowerCase();
+            return valueLower === optionStr || 
+                   labelLower === optionStr || 
+                   labelLower === normalized ||
+                   labelLower.includes(normalized) || 
+                   normalized.includes(labelLower);
+        });
         if (match) return match.multiplier || 1;
     }
     
@@ -4166,7 +4181,7 @@ function renderCompanyAnalytics() {
                     const isPreviousWeek = weekStr !== currentWeekStr;
                     
                     if (prod) {
-                        multiplier = getOptionMultiplier(prod, item.option, item.price);
+                        multiplier = item.multiplier !== undefined ? item.multiplier : getOptionMultiplier(prod, item.option, item.price);
                         if (item.costPrice !== undefined) {
                             baseCostPrice = item.costPrice;
                         } else if (isPreviousWeek) {
@@ -4456,7 +4471,7 @@ function saveWeekProductPrices(weekKey, productId, btnEl) {
                     
                     const oldItemTotal = item.total || (item.price * item.qty);
                     const prod = products.find(p => p.id === productId);
-                    const multiplier = prod ? getOptionMultiplier(prod, item.option, item.price) : 1;
+                    const multiplier = item.multiplier !== undefined ? item.multiplier : (prod ? getOptionMultiplier(prod, item.option, item.price) : 1);
                     
                     const newOptionPrice = Math.round(newSell * multiplier);
                     item.price = newOptionPrice;
