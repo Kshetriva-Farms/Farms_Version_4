@@ -481,3 +481,13 @@ For queries, orders, or partner programs:
   - **Large Basket** (15% off): increased threshold to **14 unique items** (formerly 11).
 - **Promo Coupon Migration:** Renamed the standard delivery promo coupon from `Delivery30` to `Delivery@30`.
 - **Stale Cache Cleanup:** Added a startup script routine that automatically clears legacy `Delivery30` coupon parameters from local storage on bootstrap, preventing users from checking out with expired or incorrect coupon codes.
+
+### 🗓️ July 17, 2026
+
+#### 1. 📊 Founder Insights Dashboard Fixes & Enhancements
+- **Reference Crash Resolution:** Fixed critical JavaScript reference errors (`presentWeekCount` and `displayId` undefined) that were crashing the `renderFounderInsights()` pipeline and leaving the Founder Insights dashboard tab blank.
+- **Temporal Metrics Integration:** Integrated a unique week count calculator and average weekly sales calculation. The dashboard now shows the total weeks and average weekly sales dynamically inside the stats cards (e.g., `32 (4 Weeks)` for total orders and `₹8683 (Avg: ₹2171/wk)` for platform sales).
+
+#### 2. 🎨 WebP Asset Optimization
+- **About Us Image Fix:** Added the compressed WebP asset (`about_farm_wide.webp`) directly to `images/` to resolve a broken image issue in the About section on Version 4.
+
