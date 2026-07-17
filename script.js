@@ -3574,8 +3574,17 @@ function renderFounderInsights() {
         grossSales = Math.round(grossSales * 100) / 100;
 
         // Update Stats UI
-        document.getElementById('founderRevenueVal').textContent = `₹${grossSales}`;
-        document.getElementById('founderOrdersVal').textContent = totalOrders;
+        const uniqueWeeks = new Set(ordersOnly.map(o => getWeekRangeString(o.timestamp)).filter(w => w !== "Unknown Week"));
+        const numWeeks = uniqueWeeks.size;
+        const avgWeeklySales = numWeeks > 0 ? Math.round(grossSales / numWeeks) : 0;
+
+        if (numWeeks > 0) {
+            document.getElementById('founderRevenueVal').innerHTML = `₹${grossSales} <span style="font-size: 0.85rem; font-weight: normal; color: #666; margin-left: 5px;">(Avg: ₹${avgWeeklySales}/wk)</span>`;
+            document.getElementById('founderOrdersVal').innerHTML = `${totalOrders} <span style="font-size: 0.85rem; font-weight: normal; color: #666; margin-left: 5px;">(${numWeeks} ${numWeeks === 1 ? 'Week' : 'Weeks'})</span>`;
+        } else {
+            document.getElementById('founderRevenueVal').textContent = `₹${grossSales}`;
+            document.getElementById('founderOrdersVal').textContent = totalOrders;
+        }
         // Calculate leaderboard for present week only
         const currentWeekStr = getWeekRangeString(new Date().toISOString());
         const presentWeekOrders = ordersOnly.filter(o => getWeekRangeString(o.timestamp) === currentWeekStr);
