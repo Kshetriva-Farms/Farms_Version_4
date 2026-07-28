@@ -2226,11 +2226,13 @@ function seedDatabase() {
         {
             id: 1,
             name: "Spinach (Palak)",
+            name_en: "Spinach (Palak)",
+            name_te: "తాజా పాలకూర (పాలక్)",
             category: "leafy",
             type: "leafy",
-            price: "₹20",
-            pricePerUnit: 20,
-            costPrice: 12,
+            price: "₹5",
+            pricePerUnit: 5,
+            costPrice: 4,
             unit: "bunch",
             image: "images/spinach.webp",
             inStock: true,
@@ -2240,25 +2242,29 @@ function seedDatabase() {
         {
             id: 2,
             name: "Carrots",
+            name_en: "Carrots",
+            name_te: "క్యారెట్",
             category: "root",
             type: "regular",
             price: "₹60",
             pricePerUnit: 60,
-            costPrice: 36,
+            costPrice: 54,
             unit: "kg",
             image: "images/carrots.webp",
-            inStock: true,
+            inStock: false,
             badge: "",
             farmerId: 1
         },
         {
             id: 3,
             name: "Red Tomatoes",
+            name_en: "Red Tomatoes",
+            name_te: "టమాటా",
             category: "vegetables",
             type: "regular",
-            price: "₹50",
-            pricePerUnit: 50,
-            costPrice: 30,
+            price: "₹52",
+            pricePerUnit: 52,
+            costPrice: 46,
             unit: "kg",
             image: "images/tomatoes.webp",
             inStock: true,
@@ -2268,6 +2274,8 @@ function seedDatabase() {
         {
             id: 4,
             name: "Alphonso Mangoes",
+            name_en: "Alphonso Mangoes",
+            name_te: "అల్ఫోన్సో మామిడి పండ్లు",
             category: "fruits",
             type: "premium",
             price: "₹400",
@@ -2282,39 +2290,45 @@ function seedDatabase() {
         {
             id: 5,
             name: "Cabbage",
+            name_en: "Cabbage",
+            name_te: "క్యాబేజీ",
             category: "leafy",
             type: "premium",
             price: "₹30",
             pricePerUnit: 30,
-            costPrice: 18,
+            costPrice: 24,
             unit: "pc",
             image: "images/cabbage.webp",
-            inStock: true,
+            inStock: false,
             badge: "",
             farmerId: 2
         },
         {
             id: 6,
             name: "Potatoes (Aloo)",
+            name_en: "Potatoes (Aloo)",
+            name_te: "బంగాళాదుంప",
             category: "root",
             type: "regular",
-            price: "₹30",
-            pricePerUnit: 30,
-            costPrice: 18,
+            price: "₹35",
+            pricePerUnit: 35,
+            costPrice: 29,
             unit: "kg",
             image: "images/potatoes.webp",
-            inStock: true,
+            inStock: false,
             badge: "",
             farmerId: 1
         },
         {
             id: 7,
             name: "Coriander (Kothmir)",
+            name_en: "Coriander (Kothmir)",
+            name_te: "కొత్తిమీర",
             category: "leafy",
             type: "leafy",
             price: "₹15",
             pricePerUnit: 15,
-            costPrice: 9,
+            costPrice: 10,
             unit: "bunch",
             image: "images/coriander.webp",
             inStock: true,
@@ -2324,11 +2338,13 @@ function seedDatabase() {
         {
             id: 8,
             name: "Lady Finger (Bhindi)",
+            name_en: "Lady Finger (Bhindi)",
+            name_te: "బెండకాయ",
             category: "vegetables",
             type: "regular",
-            price: "₹60",
-            pricePerUnit: 60,
-            costPrice: 36,
+            price: "₹50",
+            pricePerUnit: 50,
+            costPrice: 30,
             unit: "kg",
             image: "images/lady_finger.webp",
             inStock: true,
@@ -2338,15 +2354,177 @@ function seedDatabase() {
         {
             id: 9,
             name: "Bottle Gourd (Lauki)",
+            name_en: "Bottle Gourd (Lauki)",
+            name_te: "సోరకాయ",
             category: "vegetables",
             type: "premium",
-            price: "₹40",
-            pricePerUnit: 40,
+            price: "₹30",
+            pricePerUnit: 30,
             costPrice: 24,
             unit: "pc",
             image: "images/bottle_gourd.webp",
             inStock: true,
             badge: "limited",
+            farmerId: 3
+        },
+        {
+            id: 10,
+            name: "Water spinach ",
+            name_en: "Water spinach ",
+            name_te: "గంగవల్లి కుర",
+            category: "leafy",
+            type: "leafy",
+            price: "₹5",
+            pricePerUnit: 5,
+            costPrice: 3,
+            unit: "bunch",
+            image: "images/water_spinach.webp",
+            inStock: false,
+            badge: "",
+            farmerId: 2
+        },
+        {
+            id: 11,
+            name: "Ivy Gourd (DhondaKaya)",
+            name_en: "Ivy Gourd (DhondaKaya)",
+            name_te: "దొండకాయ",
+            category: "vegetables",
+            type: "regular",
+            price: "₹48",
+            pricePerUnit: 48,
+            costPrice: 42,
+            unit: "kg",
+            image: "images/Ivy_gourd.webp",
+            inStock: true,
+            badge: "",
+            farmerId: 3
+        },
+        {
+            id: 12,
+            name: "Brinjal (Egg plant)",
+            name_en: "Brinjal (Egg plant)",
+            name_te: "వంకాయ",
+            category: "vegetables",
+            type: "regular",
+            price: "₹48",
+            pricePerUnit: 48,
+            costPrice: 42,
+            unit: "kg",
+            image: "images/Brinjal.webp",
+            inStock: true,
+            badge: "",
+            farmerId: 3
+        },
+        {
+            id: 13,
+            name: "Cucumber (Yellow)",
+            name_en: "Cucumber (Yellow)",
+            name_te: "దోసకాయ",
+            category: "vegetables",
+            type: "regular",
+            price: "₹40",
+            pricePerUnit: 40,
+            costPrice: 34,
+            unit: "kg",
+            image: "images/Cucumber_(Yellow).webp",
+            inStock: true,
+            badge: "",
+            farmerId: 3
+        },
+        {
+            id: 14,
+            name: "Cucumber (Green)",
+            name_en: "Cucumber (Green)",
+            name_te: "కీర దోస",
+            category: "vegetables",
+            type: "regular",
+            price: "₹38",
+            pricePerUnit: 38,
+            costPrice: 32,
+            unit: "kg",
+            image: "images/Cucumber_(Green).webp",
+            inStock: false,
+            badge: "",
+            farmerId: 3
+        },
+        {
+            id: 15,
+            name: "Bitter gourd",
+            name_en: "Bitter gourd",
+            name_te: "కాకరకాయ",
+            category: "vegetables",
+            type: "regular",
+            price: "₹54",
+            pricePerUnit: 54,
+            costPrice: 48,
+            unit: "kg",
+            image: "images/Bitter_gourd.webp",
+            inStock: true,
+            badge: "",
+            farmerId: 3
+        },
+        {
+            id: 16,
+            name: "Green chilli ",
+            name_en: "Green chilli ",
+            name_te: "పచ్చిమిర్చి",
+            category: "vegetables",
+            type: "regular",
+            price: "₹55",
+            pricePerUnit: 55,
+            costPrice: 49,
+            unit: "kg",
+            image: "images/green_chilli.webp",
+            inStock: true,
+            badge: "",
+            farmerId: 3
+        },
+        {
+            id: 17,
+            name: "Asparagus (ThotaKura)",
+            name_en: "Asparagus (ThotaKura)",
+            name_te: "తోటకూర",
+            category: "leafy",
+            type: "leafy",
+            price: "₹5",
+            pricePerUnit: 5,
+            costPrice: 4,
+            unit: "bunch",
+            image: "images/Thota_kura.webp",
+            inStock: false,
+            badge: "",
+            farmerId: 2
+        },
+        {
+            id: 18,
+            name: "Sorrel (Gongura)",
+            name_en: "Sorrel (Gongura)",
+            name_te: "గోంగూర/పుంటికూర",
+            category: "leafy",
+            type: "leafy",
+            price: "₹5",
+            pricePerUnit: 5,
+            costPrice: 4,
+            unit: "bunch",
+            image: "images/gongura.webp",
+            inStock: false,
+            badge: "",
+            farmerId: 2
+        },
+        {
+            id: 19,
+            name: "Ridge Gourd (Beerakaya)",
+            name_en: "Ridge Gourd (Beerakaya)",
+            name_te: "బీరకాయ",
+            category: "vegetables",
+            type: "regular",
+            price: "₹58",
+            pricePerUnit: 58,
+            costPrice: 52,
+            unit: "kg",
+            image: "https://raw.githubusercontent.com/Kshetriva-Farms/Farms_Version_3.5/main/images/Ridge_Gourd.webp",
+            inStock: true,
+            badge: "",
             farmerId: 3
         }
     ];
@@ -2359,6 +2537,17 @@ function seedDatabase() {
     batch.commit().then(() => {
         console.log("Database seeded successfully.");
     }).catch(err => console.error("Database seeding failed:", err));
+}
+
+function triggerManualSeeding() {
+    if (!confirm("🚨 WARNING: Are you sure you want to seed the Firestore database with the default bilingual 19-product catalog? This will overwrite the catalog in your live database with default prices and include the Mangoes product.")) return;
+
+    if (useFirebase && db) {
+        seedDatabase();
+        alert("Database seeding process started. Check the console and dashboard for sync status.");
+    } else {
+        alert("Firestore is not connected. Seeding is only available in live database mode.");
+    }
 }
 
 /* ==========================================================================
@@ -3410,8 +3599,14 @@ if (useFirebase && db) {
                 updateAdminStats();
             }
         } else {
-            // Seed base items to firestore
-            seedDatabase();
+            console.warn("⚠️ Firestore 'products' collection is empty.");
+            products = [];
+            renderProducts();
+            updateCartUI();
+            if (isAdminLoggedIn()) {
+                renderAdminProducts();
+                updateAdminStats();
+            }
         }
     }, (error) => {
         console.error("Firestore catalog snap update exception:", error);

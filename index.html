@@ -917,6 +917,29 @@
                         </div>
                     </div>
 
+                    <div class="admin-stats-row" style="margin-top: 20px;">
+                        <!-- Database Seeding Control Card -->
+                        <div class="admin-stat-card"
+                            style="flex: 1.2; flex-direction: column; align-items: stretch; padding: 25px; gap: 20px;">
+                            <h4
+                                style="font-size: 1.2rem; color: var(--primary-color); border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-database"></i> Database Seeding
+                            </h4>
+                            <div style="text-align: left; font-size: 0.85rem; color: var(--text-light); line-height: 1.5; display: flex; flex-direction: column; gap: 15px;">
+                                <p style="margin: 0;">
+                                    If the live catalog database is empty or needs to be reset, you can manually seed it with the default bilingual 19-product catalog.
+                                </p>
+                                <button class="btn btn-primary" onclick="triggerManualSeeding()" style="border-radius: 20px; padding: 10px 16px; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                                    <i class="fa-solid fa-seedling"></i> Seed Catalog Database
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Empty spacer card to align flex layouts -->
+                        <div class="admin-stat-card" style="flex: 1.5; opacity: 0; pointer-events: none; border: none; background: transparent; box-shadow: none;">
+                        </div>
+                    </div>
+
                     <!-- Logs Table -->
                     <div style="margin-top: 30px;">
                         <h4
