@@ -369,6 +369,20 @@ let products = [
 
 // Initialize Firebase dynamically
 try {
+    // ALWAYS load cached catalog from LocalStorage if present on boot
+    const offlineCatalog = localStorage.getItem('kshetriva_catalog');
+    if (offlineCatalog) {
+        try {
+            products = JSON.parse(offlineCatalog);
+            // Migrate legacy 'organic' category to 'vegetables'
+            products.forEach(p => {
+                if (p.category === 'organic') p.category = 'vegetables';
+            });
+        } catch (e) {
+            console.error("Failed to parse offline localStorage catalog:", e);
+        }
+    }
+
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
     if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY" && !isLocalhost) {
         firebase.initializeApp(firebaseConfig);
@@ -382,19 +396,6 @@ try {
             console.log("⚠️ Running on localhost. Firestore connections disabled to protect production data. Using offline LocalStorage fallback.");
         } else {
             console.log("🌾 Kshetriva Farms: Running in Local Fallback Database mode. Setup Firebase credentials to sync live online.");
-        }
-        // Load offline client catalog from LocalStorage if present
-        const offlineCatalog = localStorage.getItem('kshetriva_catalog');
-        if (offlineCatalog) {
-            try {
-                products = JSON.parse(offlineCatalog);
-                // Migrate legacy 'organic' category to 'vegetables'
-                products.forEach(p => {
-                    if (p.category === 'organic') p.category = 'vegetables';
-                });
-            } catch (e) {
-                console.error("Failed to parse offline localStorage catalog:", e);
-            }
         }
     }
 } catch (e) {
@@ -585,7 +586,15 @@ const translations = {
         detailsBtnProceed: "Proceed to WhatsApp",
         detailsPlaceholderName: "e.g. Rahul Sharma",
         detailsPlaceholderPhone: "e.g. 9876543210",
-        detailsPlaceholderArea: "e.g. Maryala, Telangana"
+        detailsPlaceholderArea: "e.g. Maryala, Telangana",
+        successModalTitleOrder: "Order Saved!",
+        successModalSubtitleOrder: "We are opening WhatsApp to send your order. If it doesn't open automatically, please click the button below.",
+        successModalTitleChat: "Details Saved!",
+        successModalSubtitleChat: "We are opening WhatsApp to start chatting. If it doesn't open automatically, please click the button below.",
+        successBtnSend: "Send on WhatsApp",
+        successBtnChat: "Open WhatsApp Chat",
+        successBtnClose: "Close",
+        checkoutNetworkError: "We couldn't save your order due to a network issue. Please try again. (Error Code: ERR_1004)"
     },
     te: {
         logoText: "క్షేత్రీవ ఫార్మ్స్",
@@ -745,7 +754,15 @@ const translations = {
         detailsBtnProceed: "వాట్సాప్‌కు వెళ్లండి",
         detailsPlaceholderName: "ఉదా. రాహుల్ శర్మ",
         detailsPlaceholderPhone: "ఉదా. 9876543210",
-        detailsPlaceholderArea: "ఉదా. మర్యాల, తెలంగాణ"
+        detailsPlaceholderArea: "ఉదా. మర్యాల, తెలంగాణ",
+        successModalTitleOrder: "ఆర్డర్ సేవ్ చేయబడింది!",
+        successModalSubtitleOrder: "మీ ఆర్డర్‌ను పంపడానికి మేము వాట్సాప్‌ను తెరుస్తున్నాము. అది ఆటోమేటిక్‌గా తెరవకపోతే, దయచేసి క్రింది బటన్‌ను క్లిక్ చేయండి.",
+        successModalTitleChat: "వివరాలు సేవ్ చేయబడ్డాయి!",
+        successModalSubtitleChat: "చాటింగ్ ప్రారంభించడానికి మేము వాట్సాప్‌ను తెరుస్తున్నాము. అది ఆటోమేటిక్‌గా తెరవకపోతే, దయచేసి క్రింది బటన్‌ను క్లిక్ చేయండి.",
+        successBtnSend: "వాట్సాప్‌లో పంపండి",
+        successBtnChat: "వాట్సాప్ చాట్ ఓపెన్ చేయండి",
+        successBtnClose: "మూసివేయండి",
+        checkoutNetworkError: "నెట్‌వర్క్ సమస్య కారణంగా మేము మీ ఆర్డర్‌ను సేవ్ చేయలేకపోయాము. దయచేసి మళ్ళీ ప్రయత్నించండి. (Error Code: ERR_1004)"
     }
 };
 
@@ -1960,14 +1977,45 @@ if (floatWhatsapp) {
 // Modal event listeners for details modal
 const detailsModal = document.getElementById('whatsappDetailsModal');
 const closeDetailsModalBtn = document.getElementById('closeDetailsModalBtn');
+
+function resetDetailsModal() {
+    const formState = document.getElementById('detailsFormState');
+    const successState = document.getElementById('detailsSuccessState');
+    const submitBtn = document.getElementById('btnDetailsSubmit');
+    const detailsForm = document.getElementById('whatsappDetailsForm');
+    
+    if (formState) formState.style.display = 'block';
+    if (successState) successState.style.display = 'none';
+    
+    const dict = translations[currentLang];
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${dict ? dict.detailsBtnProceed : 'Proceed to WhatsApp'}`;
+    }
+    if (detailsForm) {
+        const inputs = detailsForm.querySelectorAll('input');
+        inputs.forEach(i => i.disabled = false);
+    }
+}
+
 if (closeDetailsModalBtn && detailsModal) {
     closeDetailsModalBtn.addEventListener('click', () => {
         detailsModal.classList.remove('open');
+        resetDetailsModal();
     });
     detailsModal.addEventListener('click', (e) => {
         if (e.target === detailsModal) {
             detailsModal.classList.remove('open');
+            resetDetailsModal();
         }
+    });
+}
+
+const btnSuccessClose = document.getElementById('btnSuccessClose');
+if (btnSuccessClose && detailsModal) {
+    btnSuccessClose.addEventListener('click', () => {
+        detailsModal.classList.remove('open');
+        resetDetailsModal();
     });
 }
 
@@ -1977,6 +2025,111 @@ function getFarmerIdForProduct(productId) {
     return 3; // Raju (3, 4, 8, 9)
 }
 
+// Helper to compile the WhatsApp message URL dynamically based on current language
+function compileWhatsAppUrl(lead) {
+    if (lead.type === 'order') {
+        const isTe = currentLang === 'te';
+        const dict = translations[currentLang];
+        let message = isTe ? `*🌿 కొత్త ఆర్డర్ — క్షేత్రీవ ఫార్మ్స్*\n` : `*🌿 New Order — Kshetriva Farms*\n`;
+        message += `================================\n`;
+        message += isTe ? `👤 *కస్టమర్ పేరు:* ${lead.name}\n` : `👤 *Customer Name:* ${lead.name}\n`;
+        message += isTe ? `📞 *వాట్సాప్ మొబైల్:* ${lead.phone}\n` : `📞 *WhatsApp Phone:* ${lead.phone}\n`;
+        message += isTe ? `📍 *ప్రాంతం:* ${lead.area}\n` : `📍 *Area/Locality:* ${lead.area}\n`;
+        message += `================================\n`;
+        
+        // Basket tier
+        const uniqueItems = lead.items.length;
+        const currentTier = detectBasketTier(uniqueItems);
+        if (currentTier) {
+            const tierNames = {
+                family: dict.basketFamilyName || currentTier.name,
+                weekly: dict.basketWeeklyName || currentTier.name,
+                farmplus: dict.basketFarmPlusName || currentTier.name
+            };
+            const tierName = tierNames[currentTier.id] || currentTier.name;
+            const pctLabel = Math.round(currentTier.discount * 100);
+            message += `\n📦 *${tierName} ${isTe ? 'వర్తించబడింది' : 'Applied'} — ${pctLabel}% ${isTe ? 'తగ్గింపు' : 'Discount'}!*\n\n`;
+        }
+
+        message += isTe ? `*వస్తువులు:*\n` : `*Items:*\n`;
+        lead.items.forEach((item, index) => {
+            message += `${index + 1}. *${item.name}*${item.option ? ' — ' + item.option : ''} × ${item.qty} (₹${item.total})\n`;
+        });
+        message += `================================\n`;
+
+        let originalDeliveryDisplay = lead.deliveryCharge === 30 ? "~₹49~" : "~₹69~";
+        if (currentTier) {
+            message += isTe ? `ఉప మొత్తం: ₹${lead.totalAmount + lead.discountAmount - lead.deliveryCharge}\n` : `Subtotal: ₹${lead.totalAmount + lead.discountAmount - lead.deliveryCharge}\n`;
+            message += isTe ? `బాస్కెట్ తగ్గింపు (${Math.round(currentTier.discount*100)}%): -₹${lead.discountAmount}\n` : `Basket Discount (${Math.round(currentTier.discount*100)}%): -₹${lead.discountAmount}\n`;
+            message += isTe ? `డెలివరీ ఛార్జీలు: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n` : `Delivery Charges: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n`;
+            message += isTe ? `*మొత్తం: ₹${lead.totalAmount}*\n\n` : `*Total: ₹${lead.totalAmount}*\n\n`;
+        } else {
+            message += isTe ? `ఉప మొత్తం: ₹${lead.totalAmount - lead.deliveryCharge}\n` : `Subtotal: ₹${lead.totalAmount - lead.deliveryCharge}\n`;
+            message += isTe ? `డెలివరీ ఛార్జీలు: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n` : `Delivery Charges: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n`;
+            message += isTe ? `*మొత్తం చెల్లింపు: ₹${lead.totalAmount}*\n\n` : `*Total Amount: ₹${lead.totalAmount}*\n\n`;
+        }
+
+        message += `📅 ${isTe ? 'డెలివరీ:' : 'Delivery:'} ${dict.waDeliveryDay}\n`;
+        message += `💳 ${isTe ? 'చెల్లింపు:' : 'Payment:'} ${dict.waPayment}\n\n`;
+        message += isTe ? `_డెలివరీ చిరునామా వివరాలు ఇక్కడ షేర్ చేయబడతాయి._` : `_Delivery address details will be shared._`;
+        
+        return `https://wa.me/918374276995?text=${encodeURIComponent(message)}`;
+    } else {
+        const isTe = currentLang === 'te';
+        const msg = isTe
+            ? `నమస్తే క్షేత్రీవ ఫార్మ్స్,\nనా వివరాలు:\n👤 పేరు: ${lead.name}\n📞 మొబైల్: ${lead.phone}\n📍 ప్రాంతం: ${lead.area}\n\nనేను మీతో చాట్ చేయాలనుకుంటున్నాను మరియు ఆర్డర్ చేయాలనుకుంటున్నాను.`
+            : `Hello Kshetriva Farms,\nMy Details:\n👤 Name: ${lead.name}\n📞 Phone: ${lead.phone}\n📍 Area/Locality: ${lead.area}\n\nI would like to enquire about ordering fresh vegetables.`;
+        return `https://wa.me/918374276995?text=${encodeURIComponent(msg)}`;
+    }
+}
+
+// Trigger Discord/Slack Embed webhooks for the admin immediately on checkout
+function triggerAdminOrderNotification(lead) {
+    if (manualWindowState && manualWindowState.webhookEnabled && manualWindowState.webhookUrl) {
+        let itemsDesc = "";
+        if (lead.items && lead.items.length > 0) {
+            lead.items.forEach((item, index) => {
+                itemsDesc += `${index + 1}. ${item.name}${item.option ? ' (' + item.option + ')' : ''} x ${item.qty} (₹${item.total})\n`;
+            });
+        } else {
+            itemsDesc = lead.cartSummary;
+        }
+
+        const payload = {
+            embeds: [{
+                title: "🌿 New Order Received — Kshetriva Farms",
+                color: 3042866, // Hex #2e7d32
+                fields: [
+                    { name: "Order ID", value: lead.id || "N/A", inline: true },
+                    { name: "Customer Name", value: lead.name || "N/A", inline: true },
+                    { name: "Phone Number", value: lead.phone || "N/A", inline: true },
+                    { name: "Area / Locality", value: lead.area || "N/A", inline: true },
+                    { name: "Total Amount", value: `₹${lead.totalAmount || 0}`, inline: true },
+                    { name: "Coupon Used", value: lead.coupon || "None", inline: true },
+                    { name: "Order Details", value: itemsDesc || "N/A" }
+                ],
+                timestamp: new Date().toISOString()
+            }]
+        };
+
+        fetch(manualWindowState.webhookUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log("Admin notification sent successfully.");
+            } else {
+                console.warn("Failed to send admin notification:", response.statusText);
+            }
+        })
+        .catch(err => console.error("Error sending admin notification:", err));
+    }
+}
+
 const detailsForm = document.getElementById('whatsappDetailsForm');
 if (detailsForm) {
     detailsForm.addEventListener('submit', async (e) => {
@@ -1984,95 +2137,51 @@ if (detailsForm) {
         const name = document.getElementById('custName').value.trim();
         const phone = document.getElementById('custPhone').value.trim();
         const area = document.getElementById('custArea').value.trim();
-        if (!name || !phone || !area) return;
-
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-        // Open a blank window synchronously in the user gesture thread to bypass popup blocker (desktop only)
-        const waWindow = isMobile ? null : window.open('', '_blank');
-
-        // Cache to localStorage
-        localStorage.setItem('kshetriva_customer_info', JSON.stringify({ name, phone, area }));
-
-        // Generate lead
-        const timestamp = new Date().toISOString();
-        const type = whatsappTriggerSource.type; // 'order' or 'chat'
-        let cartSummary = "";
-        let items = [];
-        let totalAmount = 0;
-        let discountAmount = 0;
-        let deliveryCharge = 0;
-        let status = "harvesting";
-        let coupon = "";
-
-        if (type === 'order') {
-            const cartKeys = Object.keys(cart);
-            let itemsCount = 0;
-            let subtotal = 0;
-            cartKeys.forEach((idStr) => {
-                const id = parseInt(idStr);
-                const rawProduct = products.find(p => p.id === id);
-                if (rawProduct) {
-                    const product = getTranslatedProduct(rawProduct);
-                    const cartEntry = cart[id];
-                    const qty = cartEntry.qty || 1;
-                    const price = cartEntry.optionPrice || parseInt((product.price || '0').replace(/[^\d]/g, ''));
-                    subtotal += price * qty;
-                    itemsCount += qty;
-
-                    const basePrice = rawProduct.pricePerUnit || parseInt((rawProduct.price || '0').replace(/[^\d]/g, ''));
-                    const itemCostPrice = (rawProduct.costPrice !== undefined) ? rawProduct.costPrice : Math.round(basePrice * 0.6);
-
-                    const qtyOptions = getQuantityOptions(rawProduct);
-                    const optObj = qtyOptions.find(o => o.value === cartEntry.optionValue || o.label === cartEntry.optionLabel) || qtyOptions[0];
-                    const multiplier = optObj ? (optObj.multiplier || 1) : 1;
-
-                    items.push({
-                        id: id,
-                        name: product.name,
-                        qty: qty,
-                        option: cartEntry.optionLabel || cartEntry.optionValue || '',
-                        price: price,
-                        total: price * qty,
-                        costPrice: itemCostPrice,
-                        pricePerUnit: basePrice,
-                        multiplier: multiplier,
-                        category: rawProduct.category
-                    });
-                }
-            });
-            const uniqueItems = cartKeys.length;
-            const currentTier = detectBasketTier(uniqueItems);
-            deliveryCharge = appliedCoupon === 'Delivery@30' ? 30 : 49;
-            totalAmount = subtotal;
-            if (currentTier) {
-                discountAmount = Math.round(subtotal * currentTier.discount * 100) / 100;
-                totalAmount = Math.round((subtotal - discountAmount) * 100) / 100;
-            }
-            totalAmount += deliveryCharge;
-            coupon = appliedCoupon || '';
-            cartSummary = `${itemsCount} items, Total: ₹${totalAmount}`;
-        } else {
-            cartSummary = "General Enquiry Chat";
+        
+        // 1. Validation (ERR_1002)
+        if (!name || !phone || !area || phone.length !== 10 || isNaN(phone)) {
+            alert("Please fill in all required customer details with a valid 10-digit phone number. (Error Code: ERR_1002)");
+            return;
         }
 
-        const orderId = await generateLeadId(new Date(timestamp), type);
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        const type = whatsappTriggerSource.type; // 'order' or 'chat'
 
-        const lead = {
-            id: orderId,
-            name,
-            phone,
-            area,
-            timestamp,
-            type,
-            cartSummary,
-            items,
-            totalAmount,
-            discountAmount,
-            deliveryCharge,
-            status,
-            coupon
-        };
+        // 2. Cart & Stock Validation (ERR_1001, ERR_1003)
+        if (type === 'order') {
+            const cartKeys = Object.keys(cart);
+            if (cartKeys.length === 0) {
+                alert("Your basket is empty. Please add products to checkout. (Error Code: ERR_1001)");
+                return;
+            }
 
+            const outOfStockItems = [];
+            cartKeys.forEach(idStr => {
+                const id = parseInt(idStr);
+                const p = products.find(prod => prod.id === id);
+                if (p && p.inStock === false) {
+                    outOfStockItems.push(p.name);
+                }
+            });
+            if (outOfStockItems.length > 0) {
+                alert(`Sorry, some items in your basket are out of stock: ${outOfStockItems.join(", ")}. Please remove them to proceed. (Error Code: ERR_1003)`);
+                return;
+            }
+        }
+
+        // Disable submit button and fields to prevent double checkout
+        const submitBtn = document.getElementById('btnDetailsSubmit');
+        const inputs = detailsForm.querySelectorAll('input');
+        if (submitBtn && submitBtn.disabled) return;
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `⌛ ${currentLang === 'te' ? 'సమర్పించబడుతోంది...' : 'Saving details...'}`;
+        }
+        inputs.forEach(i => i.disabled = true);
+
+        // Open a blank window synchronously in the user gesture thread to bypass popup blocker (desktop only)
+        const waWindow = isMobile ? null : window.open('', '_blank');
         if (waWindow) {
             try {
                 waWindow.document.write(`
@@ -2147,14 +2256,225 @@ if (detailsForm) {
             }
         }
 
-        if (detailsModal) detailsModal.classList.remove('open');
+        // Cache customer details draft
+        localStorage.setItem('kshetriva_customer_info', JSON.stringify({ name, phone, area }));
 
-        // Wait for database saving callback to complete before redirecting (prevents mobile unload aborts)
+        // Compile lead data structure
+        const timestamp = new Date().toISOString();
+        let cartSummary = "";
+        let items = [];
+        let totalAmount = 0;
+        let discountAmount = 0;
+        let deliveryCharge = 0;
+        let status = "harvesting";
+        let coupon = "";
+
+        if (type === 'order') {
+            const cartKeys = Object.keys(cart);
+            let itemsCount = 0;
+            let subtotal = 0;
+            cartKeys.forEach((idStr) => {
+                const id = parseInt(idStr);
+                const rawProduct = products.find(p => p.id === id);
+                if (rawProduct) {
+                    const product = getTranslatedProduct(rawProduct);
+                    const cartEntry = cart[id];
+                    const qty = cartEntry.qty || 1;
+                    const price = cartEntry.optionPrice || parseInt((product.price || '0').replace(/[^\d]/g, ''));
+                    subtotal += price * qty;
+                    itemsCount += qty;
+
+                    const basePrice = rawProduct.pricePerUnit || parseInt((rawProduct.price || '0').replace(/[^\d]/g, ''));
+                    const itemCostPrice = (rawProduct.costPrice !== undefined) ? rawProduct.costPrice : Math.round(basePrice * 0.6);
+
+                    const qtyOptions = getQuantityOptions(rawProduct);
+                    const optObj = qtyOptions.find(o => o.value === cartEntry.optionValue || o.label === cartEntry.optionLabel) || qtyOptions[0];
+                    const multiplier = optObj ? (optObj.multiplier || 1) : 1;
+
+                    items.push({
+                        id: id,
+                        name: product.name,
+                        qty: qty,
+                        option: cartEntry.optionLabel || cartEntry.optionValue || '',
+                        price: price,
+                        total: price * qty,
+                        costPrice: itemCostPrice,
+                        pricePerUnit: basePrice,
+                        multiplier: multiplier,
+                        category: rawProduct.category
+                    });
+                }
+            });
+            const uniqueItems = cartKeys.length;
+            const currentTier = detectBasketTier(uniqueItems);
+            deliveryCharge = appliedCoupon === 'Delivery@30' ? 30 : 49;
+            totalAmount = subtotal;
+            if (currentTier) {
+                discountAmount = Math.round(subtotal * currentTier.discount * 100) / 100;
+                totalAmount = Math.round((subtotal - discountAmount) * 100) / 100;
+            }
+            totalAmount += deliveryCharge;
+            coupon = appliedCoupon || '';
+            cartSummary = `${itemsCount} items, Total: ₹${totalAmount}`;
+        } else {
+            cartSummary = "General Enquiry Chat";
+        }
+
+        let orderId;
+        try {
+            orderId = await generateLeadId(new Date(timestamp), type);
+        } catch (e) {
+            console.error("Failed to generate order ID:", e);
+            orderId = `${type === 'order' ? '001' : '001'}_${getDateSuffix(new Date())}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        }
+
+        const lead = {
+            id: orderId,
+            name,
+            phone,
+            area,
+            timestamp,
+            type,
+            cartSummary,
+            items,
+            totalAmount,
+            discountAmount,
+            deliveryCharge,
+            status,
+            coupon
+        };
+
+        // Attempt Firestore save with retries
         saveLeadToDatabase(lead, () => {
+            // SUCCESS FLOW
+            const formState = document.getElementById('detailsFormState');
+            const successState = document.getElementById('detailsSuccessState');
+            if (formState) formState.style.display = 'none';
+            if (successState) successState.style.display = 'block';
+
+            // Apply translations dynamically to success modal
+            const dict = translations[currentLang];
+            const successModalTitle = document.getElementById('successModalTitle');
+            const successModalSubtitle = document.getElementById('successModalSubtitle');
+            const btnSuccessWhatsapp = document.getElementById('btnSuccessWhatsapp');
+            const btnSuccessClose = document.getElementById('btnSuccessClose');
+
+            if (successModalTitle) {
+                successModalTitle.textContent = type === 'order' 
+                    ? (dict.successModalTitleOrder || "Order Saved!") 
+                    : (dict.successModalTitleChat || "Details Saved!");
+            }
+            if (successModalSubtitle) {
+                successModalSubtitle.textContent = type === 'order' 
+                    ? (dict.successModalSubtitleOrder || "We are opening WhatsApp to send your order...") 
+                    : (dict.successModalSubtitleChat || "We are opening WhatsApp to start chatting...");
+            }
+            if (btnSuccessWhatsapp) {
+                btnSuccessWhatsapp.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${type === 'order' 
+                    ? (dict.successBtnSend || "Send on WhatsApp") 
+                    : (dict.successBtnChat || "Open WhatsApp Chat")}`;
+            }
+            if (btnSuccessClose) {
+                btnSuccessClose.textContent = dict.successBtnClose || "Close Window";
+            }
+
+            // Populate unique order ID
+            const successOrderId = document.getElementById('successOrderId');
+            if (successOrderId) successOrderId.textContent = `#${lead.id}`;
+
+            // Populate collapsible order details receipt
+            const successOrderDetails = document.getElementById('successOrderDetails');
+            if (successOrderDetails) {
+                if (type === 'order') {
+                    let itemsHtml = "";
+                    lead.items.forEach(item => {
+                        itemsHtml += `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding: 4px 0;">
+                            <span>${item.name} × ${item.qty} ${item.option ? '(' + item.option + ')' : ''}</span>
+                            <span>₹${item.total}</span>
+                        </div>`;
+                    });
+                    
+                    const deliveryLine = `
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 8px; border-top: 1px solid #ddd; padding-top: 6px;">
+                            <span>${currentLang === 'te' ? 'డెలివరీ ఛార్జ్' : 'Delivery Charge'}:</span>
+                            <span>₹${lead.deliveryCharge}</span>
+                        </div>
+                    `;
+                    itemsHtml += deliveryLine;
+
+                    if (lead.discountAmount > 0) {
+                        itemsHtml += `
+                            <div style="display: flex; justify-content: space-between; font-weight: bold; color: #d32f2f;">
+                                <span>${currentLang === 'te' ? 'తగ్గింపు' : 'Discount'}:</span>
+                                <span>-₹${lead.discountAmount}</span>
+                            </div>
+                        `;
+                    }
+                    itemsHtml += `
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-color); font-size: 0.9rem; margin-top: 4px;">
+                            <span>${currentLang === 'te' ? 'మొత్తం' : 'Total Paid'}:</span>
+                            <span>₹${lead.totalAmount}</span>
+                        </div>
+                    `;
+                    successOrderDetails.innerHTML = itemsHtml;
+                } else {
+                    successOrderDetails.innerHTML = `<div style="padding: 10px 0; text-align: center;">${currentLang === 'te' ? 'సాధారణ చాట్ విచారణ' : 'General Chat Enquiry'}</div>`;
+                }
+            }
+
+            // Compile WhatsApp URL
+            let targetUrl;
+            try {
+                targetUrl = compileWhatsAppUrl(lead);
+            } catch (err) {
+                console.error("WhatsApp URL compiler exception:", err);
+                alert("Failed to compile WhatsApp redirect message. (Error Code: ERR_1005)");
+                targetUrl = `https://wa.me/918374276995`;
+            }
+
+            if (btnSuccessWhatsapp) {
+                btnSuccessWhatsapp.href = targetUrl;
+            }
+
+            // Clear Cart (Ensuring customer basket resets on successful save!)
             if (type === 'order') {
-                sendCartWhatsAppOrder(name, phone, area, waWindow);
-            } else {
-                sendChatWhatsAppMessage(name, phone, area, waWindow);
+                cart = {};
+                saveCart();
+                updateCartUI();
+            }
+
+            // Trigger Discord/Slack Webhook notification for admin immediately
+            try {
+                triggerAdminOrderNotification(lead);
+            } catch (e) {
+                console.error("Webhook notification failure:", e);
+            }
+
+            // Auto-open WhatsApp redirect
+            if (isMobile) {
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 1200); // 1.2s delay to show success page first
+            } else if (waWindow) {
+                try {
+                    waWindow.location.href = targetUrl;
+                } catch (err) {
+                    console.error("Desktop async waWindow redirection failed:", err);
+                }
+            }
+        }, (err) => {
+            // FAILURE FLOW (ERR_1004)
+            console.error("Firestore save failure after all retries:", err);
+            alert(`${translations[currentLang].checkoutNetworkError}`);
+
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${translations[currentLang].detailsBtnProceed}`;
+            }
+            inputs.forEach(i => i.disabled = false);
+
+            if (waWindow) {
+                try { waWindow.close(); } catch (e) {}
             }
         });
     });
@@ -2215,340 +2535,7 @@ if (emailContactBtn && toastNotification) {
    Admin Operations & Database Syncing Logic
    ========================================================================== */
 
-// Seeding Firestore Database on initial load if empty
-function seedDatabase() {
-    if (!useFirebase || !db) return;
-    console.log("Seeding Firestore with default catalog...");
-    const batch = db.batch();
-    const collectionRef = db.collection("products");
 
-    const defaultCatalog = [
-        {
-            id: 1,
-            name: "Spinach (Palak)",
-            name_en: "Spinach (Palak)",
-            name_te: "తాజా పాలకూర (పాలక్)",
-            category: "leafy",
-            type: "leafy",
-            price: "₹5",
-            pricePerUnit: 5,
-            costPrice: 4,
-            unit: "bunch",
-            image: "images/spinach.webp",
-            inStock: true,
-            badge: "fresh_harvest",
-            farmerId: 2
-        },
-        {
-            id: 2,
-            name: "Carrots",
-            name_en: "Carrots",
-            name_te: "క్యారెట్",
-            category: "root",
-            type: "regular",
-            price: "₹60",
-            pricePerUnit: 60,
-            costPrice: 54,
-            unit: "kg",
-            image: "images/carrots.webp",
-            inStock: false,
-            badge: "",
-            farmerId: 1
-        },
-        {
-            id: 3,
-            name: "Red Tomatoes",
-            name_en: "Red Tomatoes",
-            name_te: "టమాటా",
-            category: "vegetables",
-            type: "regular",
-            price: "₹52",
-            pricePerUnit: 52,
-            costPrice: 46,
-            unit: "kg",
-            image: "images/tomatoes.webp",
-            inStock: true,
-            badge: "fresh_harvest",
-            farmerId: 3
-        },
-        {
-            id: 4,
-            name: "Alphonso Mangoes",
-            name_en: "Alphonso Mangoes",
-            name_te: "అల్ఫోన్సో మామిడి పండ్లు",
-            category: "fruits",
-            type: "premium",
-            price: "₹400",
-            pricePerUnit: 400,
-            costPrice: 240,
-            unit: "dozen",
-            image: "images/mangoes.webp",
-            inStock: true,
-            badge: "farmer_pick",
-            farmerId: 3
-        },
-        {
-            id: 5,
-            name: "Cabbage",
-            name_en: "Cabbage",
-            name_te: "క్యాబేజీ",
-            category: "leafy",
-            type: "premium",
-            price: "₹30",
-            pricePerUnit: 30,
-            costPrice: 24,
-            unit: "pc",
-            image: "images/cabbage.webp",
-            inStock: false,
-            badge: "",
-            farmerId: 2
-        },
-        {
-            id: 6,
-            name: "Potatoes (Aloo)",
-            name_en: "Potatoes (Aloo)",
-            name_te: "బంగాళాదుంప",
-            category: "root",
-            type: "regular",
-            price: "₹35",
-            pricePerUnit: 35,
-            costPrice: 29,
-            unit: "kg",
-            image: "images/potatoes.webp",
-            inStock: false,
-            badge: "",
-            farmerId: 1
-        },
-        {
-            id: 7,
-            name: "Coriander (Kothmir)",
-            name_en: "Coriander (Kothmir)",
-            name_te: "కొత్తిమీర",
-            category: "leafy",
-            type: "leafy",
-            price: "₹15",
-            pricePerUnit: 15,
-            costPrice: 10,
-            unit: "bunch",
-            image: "images/coriander.webp",
-            inStock: true,
-            badge: "fresh_harvest",
-            farmerId: 2
-        },
-        {
-            id: 8,
-            name: "Lady Finger (Bhindi)",
-            name_en: "Lady Finger (Bhindi)",
-            name_te: "బెండకాయ",
-            category: "vegetables",
-            type: "regular",
-            price: "₹50",
-            pricePerUnit: 50,
-            costPrice: 30,
-            unit: "kg",
-            image: "images/lady_finger.webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 9,
-            name: "Bottle Gourd (Lauki)",
-            name_en: "Bottle Gourd (Lauki)",
-            name_te: "సోరకాయ",
-            category: "vegetables",
-            type: "premium",
-            price: "₹30",
-            pricePerUnit: 30,
-            costPrice: 24,
-            unit: "pc",
-            image: "images/bottle_gourd.webp",
-            inStock: true,
-            badge: "limited",
-            farmerId: 3
-        },
-        {
-            id: 10,
-            name: "Water spinach ",
-            name_en: "Water spinach ",
-            name_te: "గంగవల్లి కుర",
-            category: "leafy",
-            type: "leafy",
-            price: "₹5",
-            pricePerUnit: 5,
-            costPrice: 3,
-            unit: "bunch",
-            image: "images/water_spinach.webp",
-            inStock: false,
-            badge: "",
-            farmerId: 2
-        },
-        {
-            id: 11,
-            name: "Ivy Gourd (DhondaKaya)",
-            name_en: "Ivy Gourd (DhondaKaya)",
-            name_te: "దొండకాయ",
-            category: "vegetables",
-            type: "regular",
-            price: "₹48",
-            pricePerUnit: 48,
-            costPrice: 42,
-            unit: "kg",
-            image: "images/Ivy_gourd.webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 12,
-            name: "Brinjal (Egg plant)",
-            name_en: "Brinjal (Egg plant)",
-            name_te: "వంకాయ",
-            category: "vegetables",
-            type: "regular",
-            price: "₹48",
-            pricePerUnit: 48,
-            costPrice: 42,
-            unit: "kg",
-            image: "images/Brinjal.webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 13,
-            name: "Cucumber (Yellow)",
-            name_en: "Cucumber (Yellow)",
-            name_te: "దోసకాయ",
-            category: "vegetables",
-            type: "regular",
-            price: "₹40",
-            pricePerUnit: 40,
-            costPrice: 34,
-            unit: "kg",
-            image: "images/Cucumber_(Yellow).webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 14,
-            name: "Cucumber (Green)",
-            name_en: "Cucumber (Green)",
-            name_te: "కీర దోస",
-            category: "vegetables",
-            type: "regular",
-            price: "₹38",
-            pricePerUnit: 38,
-            costPrice: 32,
-            unit: "kg",
-            image: "images/Cucumber_(Green).webp",
-            inStock: false,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 15,
-            name: "Bitter gourd",
-            name_en: "Bitter gourd",
-            name_te: "కాకరకాయ",
-            category: "vegetables",
-            type: "regular",
-            price: "₹54",
-            pricePerUnit: 54,
-            costPrice: 48,
-            unit: "kg",
-            image: "images/Bitter_gourd.webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 16,
-            name: "Green chilli ",
-            name_en: "Green chilli ",
-            name_te: "పచ్చిమిర్చి",
-            category: "vegetables",
-            type: "regular",
-            price: "₹55",
-            pricePerUnit: 55,
-            costPrice: 49,
-            unit: "kg",
-            image: "images/green_chilli.webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        },
-        {
-            id: 17,
-            name: "Asparagus (ThotaKura)",
-            name_en: "Asparagus (ThotaKura)",
-            name_te: "తోటకూర",
-            category: "leafy",
-            type: "leafy",
-            price: "₹5",
-            pricePerUnit: 5,
-            costPrice: 4,
-            unit: "bunch",
-            image: "images/Thota_kura.webp",
-            inStock: false,
-            badge: "",
-            farmerId: 2
-        },
-        {
-            id: 18,
-            name: "Sorrel (Gongura)",
-            name_en: "Sorrel (Gongura)",
-            name_te: "గోంగూర/పుంటికూర",
-            category: "leafy",
-            type: "leafy",
-            price: "₹5",
-            pricePerUnit: 5,
-            costPrice: 4,
-            unit: "bunch",
-            image: "images/gongura.webp",
-            inStock: false,
-            badge: "",
-            farmerId: 2
-        },
-        {
-            id: 19,
-            name: "Ridge Gourd (Beerakaya)",
-            name_en: "Ridge Gourd (Beerakaya)",
-            name_te: "బీరకాయ",
-            category: "vegetables",
-            type: "regular",
-            price: "₹58",
-            pricePerUnit: 58,
-            costPrice: 52,
-            unit: "kg",
-            image: "https://raw.githubusercontent.com/Kshetriva-Farms/Farms_Version_3.5/main/images/Ridge_Gourd.webp",
-            inStock: true,
-            badge: "",
-            farmerId: 3
-        }
-    ];
-
-    defaultCatalog.forEach((item) => {
-        const docRef = collectionRef.doc(`prod_${item.id}`);
-        batch.set(docRef, item);
-    });
-
-    batch.commit().then(() => {
-        console.log("Database seeded successfully.");
-    }).catch(err => console.error("Database seeding failed:", err));
-}
-
-function triggerManualSeeding() {
-    if (!confirm("🚨 WARNING: Are you sure you want to seed the Firestore database with the default bilingual 19-product catalog? This will overwrite the catalog in your live database with default prices and include the Mangoes product.")) return;
-
-    if (useFirebase && db) {
-        seedDatabase();
-        alert("Database seeding process started. Check the console and dashboard for sync status.");
-    } else {
-        alert("Firestore is not connected. Seeding is only available in live database mode.");
-    }
-}
 
 /* ==========================================================================
    Phase 3.5: WhatsApp Lead Capture & Secure Admin View
@@ -2634,21 +2621,59 @@ function sendChatWhatsAppMessage(name, phone, area, waWindow) {
     }
 }
 
-// Database Lead Saving Logic
-function saveLeadToDatabase(lead, callback) {
+function saveLeadToDatabase(lead, callback, errorCallback) {
     if (useFirebase && db) {
-        db.collection("leads").doc(lead.id).set(lead)
-            .then(() => {
-                console.log("Lead saved successfully to Firestore.");
-                cleanupFirestoreLeads(); // Cap Firestore leads at 100
-                if (callback) callback();
-            })
-            .catch((err) => {
-                console.error("Failed to save lead to Firestore, falling back to LocalStorage:", err);
-                saveLeadToLocalStorage(lead);
-                if (callback) callback();
-            });
+        let attempts = 0;
+        const maxAttempts = 3;
+        const timeoutDuration = 5000; // 5 seconds per attempt
+
+        function attemptSave() {
+            attempts++;
+            console.log(`Attempting to save lead to Firestore (Attempt ${attempts}/${maxAttempts})...`);
+            
+            let attemptResolved = false;
+            
+            const attemptTimeout = setTimeout(() => {
+                if (!attemptResolved) {
+                    attemptResolved = true;
+                    console.warn(`Firestore write attempt ${attempts} timed out.`);
+                    handleFailure(new Error("Timeout (ERR_1004)"));
+                }
+            }, timeoutDuration);
+
+            db.collection("leads").doc(lead.id).set(lead)
+                .then(() => {
+                    if (!attemptResolved) {
+                        attemptResolved = true;
+                        clearTimeout(attemptTimeout);
+                        console.log("Lead saved successfully to Firestore.");
+                        cleanupFirestoreLeads(); // Cap Firestore leads at 100
+                        if (callback) callback();
+                    }
+                })
+                .catch((err) => {
+                    if (!attemptResolved) {
+                        attemptResolved = true;
+                        clearTimeout(attemptTimeout);
+                        console.error(`Firestore write attempt ${attempts} failed:`, err);
+                        handleFailure(err);
+                    }
+                });
+        }
+
+        function handleFailure(error) {
+            if (attempts < maxAttempts) {
+                console.log("Retrying Firestore save in 1.5 seconds...");
+                setTimeout(attemptSave, 1500);
+            } else {
+                console.error("All Firestore save attempts failed.");
+                if (errorCallback) errorCallback(error);
+            }
+        }
+
+        attemptSave();
     } else {
+        // Fallback for offline local testing only (e.g., localhost)
         saveLeadToLocalStorage(lead);
         if (callback) callback();
     }
@@ -2945,6 +2970,34 @@ function updateManualWindowUI() {
     }
     if (stateLabel) {
         stateLabel.textContent = manualWindowState.overrideOpen ? "Open (Forced)" : "Closed (Forced)";
+    }
+
+    // Pre-fill notification setting inputs
+    const webhookInput = document.getElementById('settingWebhookUrl');
+    const webhookToggle = document.getElementById('settingWebhookToggle');
+    if (webhookInput) webhookInput.value = manualWindowState.webhookUrl || '';
+    if (webhookToggle) webhookToggle.checked = !!manualWindowState.webhookEnabled;
+}
+
+function saveNotificationSettings() {
+    const webhookUrl = document.getElementById('settingWebhookUrl').value.trim();
+    const webhookEnabled = document.getElementById('settingWebhookToggle').checked;
+
+    manualWindowState.webhookUrl = webhookUrl;
+    manualWindowState.webhookEnabled = webhookEnabled;
+
+    if (useFirebase && db) {
+        db.collection("metadata").doc("orderingWindow").set(manualWindowState)
+            .then(() => {
+                alert("Notification settings saved successfully to Firestore.");
+            })
+            .catch(err => {
+                console.error("Error saving notification settings:", err);
+                alert("Failed to save settings to database. (Error Code: ERR_1004)");
+            });
+    } else {
+        localStorage.setItem('kshetriva_manual_window', JSON.stringify(manualWindowState));
+        alert("Notification settings saved locally.");
     }
 }
 
@@ -3592,6 +3645,9 @@ if (useFirebase && db) {
                 if (p.category === 'organic') p.category = 'vegetables';
             });
             products = dbProducts;
+            // Cache catalog locally to prevent fallback to default prices on next load
+            localStorage.setItem('kshetriva_catalog', JSON.stringify(products));
+            
             renderProducts();
             updateCartUI();
             if (isAdminLoggedIn()) {
@@ -3734,7 +3790,7 @@ let platformFeePercent = 8;
 
 function fetchAllLeads() {
     return new Promise((resolve) => {
-        if (useFirebase && db) {
+        if (useFirebase && db && isAdminLoggedIn()) {
             db.collection("leads").orderBy("timestamp", "desc").get()
                 .then((snapshot) => {
                     const leads = [];
@@ -4721,6 +4777,7 @@ function generateLeadId(date, type) {
     return new Promise((resolve) => {
         const dateSuffix = getDateSuffix(date);
         fetchAllLeads().then((leads) => {
+            const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
             if (type === 'order') {
                 const allOrders = leads.filter(l => l.type === 'order');
 
@@ -4729,7 +4786,8 @@ function generateLeadId(date, type) {
                 allOrders.forEach(o => {
                     if (o.id && o.id.includes('_')) {
                         const parts = o.id.split('_');
-                        if (parts.length === 2 && parts[0].length === 3) {
+                        // Supports both old 001_DDMMYYYY and new 001_DDMMYYYY-RAND formats
+                        if (parts.length >= 2 && parts[0].length === 3) {
                             const seq = parseInt(parts[0]);
                             if (!isNaN(seq) && seq > maxSeq) {
                                 maxSeq = seq;
@@ -4740,7 +4798,7 @@ function generateLeadId(date, type) {
 
                 const nextSeq = maxSeq + 1;
                 const paddedSeq = String(nextSeq).padStart(3, '0');
-                resolve(`${paddedSeq}_${dateSuffix}`);
+                resolve(`${paddedSeq}_${dateSuffix}-${rand}`);
             } else {
                 const allChats = leads.filter(l => l.type !== 'order');
 
@@ -4749,8 +4807,9 @@ function generateLeadId(date, type) {
                 allChats.forEach(c => {
                     if (c.id && c.id.includes('_')) {
                         const parts = c.id.split('_');
-                        if (parts.length === 2 && parts[1].length === 3) {
-                            const seq = parseInt(parts[1]);
+                        // Supports both old DDMMYYYY_001 and new DDMMYYYY-RAND_001 formats
+                        if (parts.length >= 2 && parts[parts.length - 1].length === 3) {
+                            const seq = parseInt(parts[parts.length - 1]);
                             if (!isNaN(seq) && seq > maxSeq) {
                                 maxSeq = seq;
                             }
@@ -4760,7 +4819,7 @@ function generateLeadId(date, type) {
 
                 const nextSeq = maxSeq + 1;
                 const paddedSeq = String(nextSeq).padStart(3, '0');
-                resolve(`${dateSuffix}_${paddedSeq}`);
+                resolve(`${dateSuffix}-${rand}_${paddedSeq}`);
             }
         });
     });
@@ -5233,6 +5292,40 @@ function closeWeekDetails() {
    Application Boot Initialization
    ========================================================================== */
 
+// Prefill customer details and bind auto-saving on input (auto-save draft for page refresh)
+function initCustomerDetailsDraft() {
+    const custName = document.getElementById('custName');
+    const custPhone = document.getElementById('custPhone');
+    const custArea = document.getElementById('custArea');
+
+    if (custName && custPhone && custArea) {
+        const cachedInfo = localStorage.getItem('kshetriva_customer_info');
+        if (cachedInfo) {
+            try {
+                const info = JSON.parse(cachedInfo);
+                if (info.name) custName.value = info.name;
+                if (info.phone) custPhone.value = info.phone;
+                if (info.area) custArea.value = info.area;
+            } catch (e) {
+                console.error("Error parsing cached customer info draft:", e);
+            }
+        }
+
+        const saveDraft = () => {
+            const draft = {
+                name: custName.value.trim(),
+                phone: custPhone.value.trim(),
+                area: custArea.value.trim()
+            };
+            localStorage.setItem('kshetriva_customer_info', JSON.stringify(draft));
+        };
+
+        custName.addEventListener('input', saveDraft);
+        custPhone.addEventListener('input', saveDraft);
+        custArea.addEventListener('input', saveDraft);
+    }
+}
+
 loadCart();
 loadManualWindowState();
 applyLanguage();
@@ -5241,6 +5334,7 @@ updateCartUI();
 renderProducts();
 checkHashRoute();
 updateOrderingWindowBanner();
+initCustomerDetailsDraft();
 
 // Refresh ordering window countdown every 60 seconds
 setInterval(() => {

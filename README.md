@@ -491,3 +491,21 @@ For queries, orders, or partner programs:
 #### 2. 🎨 WebP Asset Optimization
 - **About Us Image Fix:** Added the compressed WebP asset (`about_farm_wide.webp`) directly to `images/` to resolve a broken image issue in the About section on Version 4.
 
+### 🗓️ August 5, 2026
+
+#### 1. 🛡️ Checkout Workflow Reliability & Visual Optimization
+- **3x Write Retry & Network Failure Block**: Replaced silent local storage checkout fallbacks with a robust saving pipeline featuring up to 3 write attempts and a 5-second timeout per attempt. Persistent failures trigger a localized error message (`ERR_1004`), keeping the modal and shopping basket intact so the customer can retry.
+- **Collapsible "View Order" Success Flow**: Redesigned the checkout modal to transition into a success state upon order save rather than redirecting immediately. Displays a green checkmark, unique order ID, and a collapsible `<details>` receipt displaying the items, subtotal, discount, delivery fee, and total paid.
+- **Non-Colliding Order IDs**: Appended a random 4-character suffix (using a hyphen, e.g. `-R4X9`) to sequence-based order IDs (e.g. `001_DDMMYYYY-R4X9`), allowing guest checkouts to always write successfully under `create` rules and avoiding ID update permission conflicts.
+- **Diagnostic Error Codes**: Mapped checkout flow failures to support-friendly codes (`ERR_1001` to `ERR_1005`) for easier diagnostic and customer support handling.
+- **Auto-Save Drafts on Page Refresh**: Prefills details modal fields (`#custName`, `#custPhone`, and `#custArea`) on startup by capturing inputs as they are typed.
+
+#### 2. ⚡ Persistent Local Catalog Caching (Storefront Price Reset Fix)
+- **Startup Loading**: Configured the application to always load catalog items and prices from `localStorage` (`kshetriva_catalog`) on boot, removing default price blinking.
+- **Dynamic Synchronization**: Configured the Firestore database real-time snapshot listener to write updates to `localStorage` immediately, keeping the client's cache fresh and preserving the admin's custom weekly prices.
+
+#### 3. 🔔 Admin Discord/Slack Webhook Notifications
+- **Dashboard Webhook Config**: Added an **Admin Notifications Settings Card** in the admin dashboard settings workspace to allow configuring Slack/Discord webhook endpoints.
+- **Metadata Sync**: Synced configurations directly to the existing `/metadata/orderingWindow` document.
+- **Real-Time Notification POST**: Automatically fires a fetch-POST request sending a beautifully formatted Embed payload of the order details to the webhook on checkout success.
+

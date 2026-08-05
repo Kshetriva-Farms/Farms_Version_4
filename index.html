@@ -609,45 +609,79 @@
             style="max-width: 450px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative;">
             <button class="close-admin-login" id="closeDetailsModalBtn" aria-label="Close Modal"
                 style="top: 15px; right: 15px; background: none; border: none; font-size: 1.8rem; cursor: pointer;">&times;</button>
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div
-                    style="width: 60px; height: 60px; background: rgba(37, 211, 102, 0.1); color: #25d366; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 1.8rem;">
-                    <i class="fa-brands fa-whatsapp"></i>
+            <!-- Form Input State -->
+            <div id="detailsFormState">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div
+                        style="width: 60px; height: 60px; background: rgba(37, 211, 102, 0.1); color: #25d366; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 1.8rem;">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </div>
+                    <h3 id="detailsModalTitle"
+                        style="color: var(--primary-color); font-size: 1.5rem; font-family: 'Outfit', sans-serif;">WhatsApp
+                        Contact</h3>
+                    <p id="detailsModalSubtitle" style="color: var(--text-light); font-size: 0.9rem; margin-top: 5px;">
+                        Please provide your details to continue.</p>
                 </div>
-                <h3 id="detailsModalTitle"
-                    style="color: var(--primary-color); font-size: 1.5rem; font-family: 'Outfit', sans-serif;">WhatsApp
-                    Contact</h3>
-                <p id="detailsModalSubtitle" style="color: var(--text-light); font-size: 0.9rem; margin-top: 5px;">
-                    Please provide your details to continue.</p>
+                <form id="whatsappDetailsForm">
+                    <div class="form-group" style="text-align: left; margin-bottom: 16px;">
+                        <label for="custName" id="lblCustName"
+                            style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">Your
+                            Name *</label>
+                        <input type="text" id="custName" required placeholder="Your Name"
+                            style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin-bottom: 16px;">
+                        <label for="custPhone" id="lblCustPhone"
+                            style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">WhatsApp
+                            Number *</label>
+                        <input type="tel" id="custPhone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}"
+                            title="Please enter a valid 10-digit phone number"
+                            style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                    </div>
+                    <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+                        <label for="custArea" id="lblCustArea"
+                            style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">Area
+                            / Locality *</label>
+                        <input type="text" id="custArea" required placeholder="e.g. Maryala, Telangana"
+                            style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                    </div>
+                    <button type="submit" class="btn btn-whatsapp" id="btnDetailsSubmit"
+                        style="width: 100%; border-radius: 10px; padding: 13px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                        <i class="fa-brands fa-whatsapp"></i> Proceed to WhatsApp
+                    </button>
+                </form>
             </div>
-            <form id="whatsappDetailsForm">
-                <div class="form-group" style="text-align: left; margin-bottom: 16px;">
-                    <label for="custName" id="lblCustName"
-                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">Your
-                        Name *</label>
-                    <input type="text" id="custName" required placeholder="Your Name"
-                        style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+
+            <!-- Success State Container (Hidden by default) -->
+            <div id="detailsSuccessState" style="display: none; text-align: center; padding: 10px 0;">
+                <div style="width: 60px; height: 60px; background: rgba(46, 125, 50, 0.1); color: #2e7d32; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; font-size: 2rem;">
+                    <i class="fa-solid fa-circle-check"></i>
                 </div>
-                <div class="form-group" style="text-align: left; margin-bottom: 16px;">
-                    <label for="custPhone" id="lblCustPhone"
-                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">WhatsApp
-                        Number *</label>
-                    <input type="tel" id="custPhone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}"
-                        title="Please enter a valid 10-digit phone number"
-                        style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
+                <h3 id="successModalTitle" style="color: #2e7d32; font-size: 1.5rem; font-family: 'Outfit', sans-serif; margin-bottom: 10px;">Order Saved!</h3>
+                
+                <div id="successOrderSummary" style="font-size: 0.9rem; font-weight: 600; color: var(--text-dark); margin-bottom: 10px;">
+                    Order ID: <span id="successOrderId" style="color: var(--primary-color);">#001_05082026</span>
                 </div>
-                <div class="form-group" style="text-align: left; margin-bottom: 20px;">
-                    <label for="custArea" id="lblCustArea"
-                        style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; color: var(--text-dark);">Area
-                        / Locality *</label>
-                    <input type="text" id="custArea" required placeholder="e.g. Maryala, Telangana"
-                        style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #e0e0e0; font-family: inherit; font-size: 0.95rem; transition: var(--transition);">
-                </div>
-                <button type="submit" class="btn btn-whatsapp" id="btnDetailsSubmit"
-                    style="width: 100%; border-radius: 10px; padding: 13px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                    <i class="fa-brands fa-whatsapp"></i> Proceed to WhatsApp
+                
+                <details style="text-align: left; background: rgba(0,0,0,0.02); border: 1.5px dashed rgba(46, 125, 50, 0.2); border-radius: 12px; padding: 10px; margin-bottom: 18px; font-size: 0.85rem;">
+                    <summary style="cursor: pointer; font-weight: 600; color: #555; outline: none; margin-bottom: 5px;">
+                        🔍 View Order Details
+                    </summary>
+                    <div id="successOrderDetails" style="max-height: 120px; overflow-y: auto; padding-top: 5px; color: #555; font-family: inherit;">
+                        <!-- Dynamically filled -->
+                    </div>
+                </details>
+
+                <p id="successModalSubtitle" style="color: var(--text-light); font-size: 0.9rem; line-height: 1.4; margin-bottom: 15px;">
+                    We are opening WhatsApp to send your order. If it doesn't open automatically, please click the button below.
+                </p>
+                <a id="btnSuccessWhatsapp" href="#" target="_blank" class="btn btn-whatsapp" style="width: 100%; border-radius: 10px; padding: 13px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif; text-decoration: none; margin-bottom: 12px; box-sizing: border-box;">
+                    <i class="fa-brands fa-whatsapp"></i> Send on WhatsApp
+                </a>
+                <button id="btnSuccessClose" class="btn" style="width: 100%; border-radius: 10px; padding: 10px; font-size: 0.9rem; background: #e0e0e0; color: #333; font-family: 'Outfit', sans-serif; border: none; cursor: pointer;">
+                    Close Window
                 </button>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -895,6 +929,35 @@
                             </div>
                         </div>
 
+                        <!-- Admin Notifications Settings Card -->
+                        <div class="admin-stat-card"
+                            style="flex: 1; flex-direction: column; align-items: stretch; padding: 25px; gap: 15px; box-sizing: border-box;">
+                            <h4
+                                style="font-size: 1.2rem; color: var(--primary-color); border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-bell"></i> Admin Notifications
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <label style="display: block; text-align: left; margin: 0;">
+                                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-dark);">Webhook Notification URL (Discord/Slack)</span>
+                                    <input type="text" id="settingWebhookUrl" placeholder="https://discord.com/api/webhooks/..."
+                                        style="width: 100%; padding: 8px 12px; margin-top: 5px; border-radius: 8px; border: 1.5px solid #e0e0e0; font-size: 0.85rem; box-sizing: border-box;">
+                                </label>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                    <div>
+                                        <strong style="font-size: 0.9rem; color: var(--text-dark); display: block;">Enable Webhook</strong>
+                                        <span style="display: block; font-size: 0.75rem; color: var(--text-light);">Notify on new orders</span>
+                                    </div>
+                                    <label class="stock-toggle" style="margin: 0;">
+                                        <input type="checkbox" id="settingWebhookToggle">
+                                        <span class="stock-slider"></span>
+                                    </label>
+                                </div>
+                                <button onclick="saveNotificationSettings()" class="btn" style="padding: 10px; border-radius: 8px; font-size: 0.88rem; background: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: 600; margin-top: 5px; display: flex; align-items: center; justify-content: center;">
+                                    Save Notification Settings
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Info Card -->
                         <div class="admin-stat-card"
                             style="flex: 1.5; padding: 25px; align-items: flex-start; flex-direction: row; gap: 15px;">
@@ -914,29 +977,6 @@
                                     (red) the catalog checkout window for all storefront users.
                                 </p>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="admin-stats-row" style="margin-top: 20px;">
-                        <!-- Database Seeding Control Card -->
-                        <div class="admin-stat-card"
-                            style="flex: 1.2; flex-direction: column; align-items: stretch; padding: 25px; gap: 20px;">
-                            <h4
-                                style="font-size: 1.2rem; color: var(--primary-color); border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; margin: 0; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-database"></i> Database Seeding
-                            </h4>
-                            <div style="text-align: left; font-size: 0.85rem; color: var(--text-light); line-height: 1.5; display: flex; flex-direction: column; gap: 15px;">
-                                <p style="margin: 0;">
-                                    If the live catalog database is empty or needs to be reset, you can manually seed it with the default bilingual 19-product catalog.
-                                </p>
-                                <button class="btn btn-primary" onclick="triggerManualSeeding()" style="border-radius: 20px; padding: 10px 16px; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
-                                    <i class="fa-solid fa-seedling"></i> Seed Catalog Database
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Empty spacer card to align flex layouts -->
-                        <div class="admin-stat-card" style="flex: 1.5; opacity: 0; pointer-events: none; border: none; background: transparent; box-shadow: none;">
                         </div>
                     </div>
 
