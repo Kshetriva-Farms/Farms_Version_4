@@ -2026,7 +2026,12 @@ function getFarmerIdForProduct(productId) {
 }
 
 // Helper to compile the WhatsApp message URL dynamically based on current language
-function compileWhatsAppUrl(lead) {
+// supports using native whatsapp:// protocol for direct app opening on mobile redirects
+function compileWhatsAppUrl(lead, isMobileScheme = false) {
+    const baseUrl = isMobileScheme 
+        ? "whatsapp://send?phone=918374276995&text=" 
+        : "https://wa.me/918374276995?text=";
+
     if (lead.type === 'order') {
         const isTe = currentLang === 'te';
         const dict = translations[currentLang];
@@ -2073,13 +2078,13 @@ function compileWhatsAppUrl(lead) {
         message += `💳 ${isTe ? 'చెల్లింపు:' : 'Payment:'} ${dict.waPayment}\n\n`;
         message += isTe ? `_డెలివరీ చిరునామా వివరాలు ఇక్కడ షేర్ చేయబడతాయి._` : `_Delivery address details will be shared._`;
         
-        return `https://wa.me/918374276995?text=${encodeURIComponent(message)}`;
+        return `${baseUrl}${encodeURIComponent(message)}`;
     } else {
         const isTe = currentLang === 'te';
         const msg = isTe
             ? `నమస్తే క్షేత్రీవ ఫార్మ్స్,\nనా వివరాలు:\n👤 పేరు: ${lead.name}\n📞 మొబైల్: ${lead.phone}\n📍 ప్రాంతం: ${lead.area}\n\nనేను మీతో చాట్ చేయాలనుకుంటున్నాను మరియు ఆర్డర్ చేయాలనుకుంటున్నాను.`
             : `Hello Kshetriva Farms,\nMy Details:\n👤 Name: ${lead.name}\n📞 Phone: ${lead.phone}\n📍 Area/Locality: ${lead.area}\n\nI would like to enquire about ordering fresh vegetables.`;
-        return `https://wa.me/918374276995?text=${encodeURIComponent(msg)}`;
+        return `${baseUrl}${encodeURIComponent(msg)}`;
     }
 }
 
@@ -2422,14 +2427,18 @@ if (detailsForm) {
                 }
             }
 
-            // Compile WhatsApp URL
-            let targetUrl;
+            // Compile WhatsApp URLs
+            let targetUrl, redirectUrl;
             try {
-                targetUrl = compileWhatsAppUrl(lead);
+                // Standard https:// link for the success screen click button (ensuring clean browser-to-app path)
+                targetUrl = compileWhatsAppUrl(lead, false);
+                // Native whatsapp:// protocol for mobile redirects to trigger application launch directly without intermediate browser pages
+                redirectUrl = compileWhatsAppUrl(lead, isMobile);
             } catch (err) {
                 console.error("WhatsApp URL compiler exception:", err);
                 alert("Failed to compile WhatsApp redirect message. (Error Code: ERR_1005)");
                 targetUrl = `https://wa.me/918374276995`;
+                redirectUrl = isMobile ? `whatsapp://send?phone=918374276995` : `https://wa.me/918374276995`;
             }
 
             if (btnSuccessWhatsapp) {
@@ -2453,11 +2462,11 @@ if (detailsForm) {
             // Auto-open WhatsApp redirect
             if (isMobile) {
                 setTimeout(() => {
-                    window.location.href = targetUrl;
+                    window.location.href = redirectUrl;
                 }, 1200); // 1.2s delay to show success page first
             } else if (waWindow) {
                 try {
-                    waWindow.location.href = targetUrl;
+                    waWindow.location.href = redirectUrl;
                 } catch (err) {
                     console.error("Desktop async waWindow redirection failed:", err);
                 }
