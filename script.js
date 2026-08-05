@@ -2656,7 +2656,7 @@ function saveLeadToDatabase(lead, callback, errorCallback) {
                         attemptResolved = true;
                         clearTimeout(attemptTimeout);
                         console.log("Lead saved successfully to Firestore.");
-                        cleanupFirestoreLeads(); // Cap Firestore leads at 100
+                        cleanupFirestoreLeads(); // Cap Firestore leads at 250
                         if (callback) callback();
                     }
                 })
@@ -2699,7 +2699,7 @@ function saveLeadToLocalStorage(lead) {
         }
     }
     leads.unshift(lead);
-    leads = leads.slice(0, 100); // Cap at latest 100 leads
+    leads = leads.slice(0, 250); // Cap at latest 250 leads to optimize storage
     localStorage.setItem('kshetriva_leads', JSON.stringify(leads));
 }
 
@@ -2707,13 +2707,13 @@ function cleanupFirestoreLeads() {
     if (!useFirebase || !db) return;
     db.collection("leads").orderBy("timestamp", "desc").get()
         .then((snapshot) => {
-            if (snapshot.size > 100) {
+            if (snapshot.size > 250) {
                 const batch = db.batch();
-                for (let i = 100; i < snapshot.size; i++) {
+                for (let i = 250; i < snapshot.size; i++) {
                     batch.delete(snapshot.docs[i].ref);
                 }
                 batch.commit().then(() => {
-                    console.log("Firestore leads batch deleted. Capped at 100.");
+                    console.log("Firestore leads batch deleted. Capped at 250.");
                 }).catch(err => console.error("Firestore leads batch cleanup failed:", err));
             }
         })

@@ -397,7 +397,7 @@ For queries, orders, or partner programs:
 #### 1. 💬 WhatsApp Leads Capture Modal & secure Admin Dashboard visualizer (Version 3.5)
 - **WhatsApp Clicks Interception**: Added javascript hooks to intercept user click events on `#whatsappOrderBtn`, `.hero-btns .btn-whatsapp`, and `.whatsapp-float` buttons.
 - **Contact Details Modal**: Deployed an overlay form modal (`#whatsappDetailsModal`) prompting for Name, WhatsApp Phone, and Area/Locality in English and Telugu.
-- **Leads Storage Platform**: Developed database handlers to save submitted details to either Firestore collection `leads` (when online) or fallback `localStorage` key `kshetriva_leads`. Limited entries to the **latest 100 details** using automated query batch deletion (for Firestore) and slice routines (for LocalStorage).
+- **Leads Storage Platform**: Developed database handlers to save submitted details to either Firestore collection `leads` (when online) or fallback `localStorage` key `kshetriva_leads`. Limited entries to the **latest 250 details** using automated query batch deletion (for Firestore) and slice routines (for LocalStorage) to optimize storage.
 - **Auto-Fill Caching**: Saves submitted details under browser cache `kshetriva_customer_info` to pre-populate inputs on subsequent contacts.
 - **Pre-pended Details Receipt**: Prepends Name, Phone, and Area to WhatsApp order receipts and chat templates dynamically.
 - **Admin Leads Visualization**: Integrated a new tabbed workspace in the `#admin` Dashboard with a complete leads directory table, direct dial/chat links, and deletion triggers.
