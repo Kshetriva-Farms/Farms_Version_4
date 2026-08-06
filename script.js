@@ -1923,7 +1923,7 @@ function sendCartWhatsAppOrder(name, phone, area, waWindow) {
         basket_tier: currentTier ? currentTier.id : 'none'
     });
     const encoded = encodeURIComponent(message);
-    const targetUrl = `https://wa.me/918374276995?text=${encoded}`;
+    const targetUrl = `https://wa.me/916304634987?text=${encoded}`;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
     if (isMobile) {
         window.location.href = targetUrl;
@@ -2029,8 +2029,8 @@ function getFarmerIdForProduct(productId) {
 // supports using native whatsapp:// protocol for direct app opening on mobile redirects
 function compileWhatsAppUrl(lead, isMobileScheme = false) {
     const baseUrl = isMobileScheme 
-        ? "whatsapp://send?phone=918374276995&text=" 
-        : "https://wa.me/918374276995?text=";
+        ? "whatsapp://send?phone=916304634987&text=" 
+        : "https://wa.me/916304634987?text=";
 
     if (lead.type === 'order') {
         const isTe = currentLang === 'te';
@@ -2437,8 +2437,8 @@ if (detailsForm) {
             } catch (err) {
                 console.error("WhatsApp URL compiler exception:", err);
                 alert("Failed to compile WhatsApp redirect message. (Error Code: ERR_1005)");
-                targetUrl = `https://wa.me/918374276995`;
-                redirectUrl = isMobile ? `whatsapp://send?phone=918374276995` : `https://wa.me/918374276995`;
+                targetUrl = `https://wa.me/916304634987`;
+                redirectUrl = isMobile ? `whatsapp://send?phone=916304634987` : `https://wa.me/916304634987`;
             }
 
             if (btnSuccessWhatsapp) {
@@ -2619,7 +2619,7 @@ function sendChatWhatsAppMessage(name, phone, area, waWindow) {
         ? `నమస్తే క్షేత్రీవ ఫార్మ్స్,\nనా వివరాలు:\n👤 పేరు: ${name}\n📞 మొబైల్: ${phone}\n📍 ప్రాంతం: ${area}\n\nనేను మీతో చాట్ చేయాలనుకుంటున్నాను మరియు ఆర్డర్ చేయాలనుకుంటున్నాను.`
         : `Hello Kshetriva Farms,\nMy Details:\n👤 Name: ${name}\n📞 Phone: ${phone}\n📍 Area/Locality: ${area}\n\nI would like to enquire about ordering fresh vegetables.`;
     const encoded = encodeURIComponent(msg);
-    const targetUrl = `https://wa.me/918374276995?text=${encoded}`;
+    const targetUrl = `https://wa.me/916304634987?text=${encoded}`;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
     if (isMobile) {
         window.location.href = targetUrl;

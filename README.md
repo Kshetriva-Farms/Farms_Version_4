@@ -211,7 +211,7 @@ message += `*Total Amount:* ₹${totalSum}\n\n`;
 ```
 
 It is then fully encoded using `encodeURIComponent(message)` and bound to the URL:
-`https://wa.me/918374276995?text={encoded_message}`
+`https://wa.me/916304634987?text={encoded_message}`
 
 ---
 
@@ -227,7 +227,7 @@ The custom stylesheet features premium responsiveness defined for standard viewp
 ## 📧 Contact & Support
 
 For queries, orders, or partner programs:
-- **Phone:** +91 83742 76995 | +91 90148 33202
+- **Phone:** +91 63046 34987 (WhatsApp) | +91 83742 76995 | +91 90148 33202
 - **Email:** [farm@kshetrivafarms.com](mailto:farm@kshetrivafarms.com) (Click the envelope icon in the website footer to copy this address instantly!)
 - **Address:** H no. 5-134, Maryala, Bommalaramaram, Telangana - 508116, India
 - **Instagram:** [@kshetrivafarms](https://www.instagram.com/kshetrivafarms?igsh=dGV5d3I2d2Rhc2t2)
@@ -508,4 +508,11 @@ For queries, orders, or partner programs:
 - **Dashboard Webhook Config**: Added an **Admin Notifications Settings Card** in the admin dashboard settings workspace to allow configuring Slack/Discord webhook endpoints.
 - **Metadata Sync**: Synced configurations directly to the existing `/metadata/orderingWindow` document.
 - **Real-Time Notification POST**: Automatically fires a fetch-POST request sending a beautifully formatted Embed payload of the order details to the webhook on checkout success.
+
+### 🗓️ August 6, 2026
+
+#### 1. 📞 WhatsApp Contact and Redirect Number Update
+- **Updated Redirect Target:** Changed all active WhatsApp order and general chat redirect endpoints to use the new number `+91 63046 34987` (`916304634987`) across `script.js` checkout routines, fallback links, and floating widget URLs.
+- **Displayed Contact Info:** Added `+91 63046 34987 (WhatsApp)` as an additional phone number in the contact details in the website footer (`index.html` and `blog.html`), sidebar (`blog.html`), and project documentation to keep user-facing contact information aligned.
+
 
