@@ -1983,10 +1983,10 @@ function resetDetailsModal() {
     const successState = document.getElementById('detailsSuccessState');
     const submitBtn = document.getElementById('btnDetailsSubmit');
     const detailsForm = document.getElementById('whatsappDetailsForm');
-    
+
     if (formState) formState.style.display = 'block';
     if (successState) successState.style.display = 'none';
-    
+
     const dict = translations[currentLang];
     if (submitBtn) {
         submitBtn.disabled = false;
@@ -2028,8 +2028,8 @@ function getFarmerIdForProduct(productId) {
 // Helper to compile the WhatsApp message URL dynamically based on current language
 // supports using native whatsapp:// protocol for direct app opening on mobile redirects
 function compileWhatsAppUrl(lead, isMobileScheme = false) {
-    const baseUrl = isMobileScheme 
-        ? "whatsapp://send?phone=916304634987&text=" 
+    const baseUrl = isMobileScheme
+        ? "whatsapp://send?phone=916304634987&text="
         : "https://wa.me/916304634987?text=";
 
     if (lead.type === 'order') {
@@ -2041,7 +2041,7 @@ function compileWhatsAppUrl(lead, isMobileScheme = false) {
         message += isTe ? `📞 *వాట్సాప్ మొబైల్:* ${lead.phone}\n` : `📞 *WhatsApp Phone:* ${lead.phone}\n`;
         message += isTe ? `📍 *ప్రాంతం:* ${lead.area}\n` : `📍 *Area/Locality:* ${lead.area}\n`;
         message += `================================\n`;
-        
+
         // Basket tier
         const uniqueItems = lead.items.length;
         const currentTier = detectBasketTier(uniqueItems);
@@ -2065,7 +2065,7 @@ function compileWhatsAppUrl(lead, isMobileScheme = false) {
         let originalDeliveryDisplay = lead.deliveryCharge === 30 ? "~₹49~" : "~₹69~";
         if (currentTier) {
             message += isTe ? `ఉప మొత్తం: ₹${lead.totalAmount + lead.discountAmount - lead.deliveryCharge}\n` : `Subtotal: ₹${lead.totalAmount + lead.discountAmount - lead.deliveryCharge}\n`;
-            message += isTe ? `బాస్కెట్ తగ్గింపు (${Math.round(currentTier.discount*100)}%): -₹${lead.discountAmount}\n` : `Basket Discount (${Math.round(currentTier.discount*100)}%): -₹${lead.discountAmount}\n`;
+            message += isTe ? `బాస్కెట్ తగ్గింపు (${Math.round(currentTier.discount * 100)}%): -₹${lead.discountAmount}\n` : `Basket Discount (${Math.round(currentTier.discount * 100)}%): -₹${lead.discountAmount}\n`;
             message += isTe ? `డెలివరీ ఛార్జీలు: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n` : `Delivery Charges: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n`;
             message += isTe ? `*మొత్తం: ₹${lead.totalAmount}*\n\n` : `*Total: ₹${lead.totalAmount}*\n\n`;
         } else {
@@ -2077,7 +2077,7 @@ function compileWhatsAppUrl(lead, isMobileScheme = false) {
         message += `📅 ${isTe ? 'డెలివరీ:' : 'Delivery:'} ${dict.waDeliveryDay}\n`;
         message += `💳 ${isTe ? 'చెల్లింపు:' : 'Payment:'} ${dict.waPayment}\n\n`;
         message += isTe ? `_డెలివరీ చిరునామా వివరాలు ఇక్కడ షేర్ చేయబడతాయి._` : `_Delivery address details will be shared._`;
-        
+
         return `${baseUrl}${encodeURIComponent(message)}`;
     } else {
         const isTe = currentLang === 'te';
@@ -2124,14 +2124,14 @@ function triggerAdminOrderNotification(lead) {
             },
             body: JSON.stringify(payload)
         })
-        .then(response => {
-            if (response.ok) {
-                console.log("Admin notification sent successfully.");
-            } else {
-                console.warn("Failed to send admin notification:", response.statusText);
-            }
-        })
-        .catch(err => console.error("Error sending admin notification:", err));
+            .then(response => {
+                if (response.ok) {
+                    console.log("Admin notification sent successfully.");
+                } else {
+                    console.warn("Failed to send admin notification:", response.statusText);
+                }
+            })
+            .catch(err => console.error("Error sending admin notification:", err));
     }
 }
 
@@ -2142,7 +2142,7 @@ if (detailsForm) {
         const name = document.getElementById('custName').value.trim();
         const phone = document.getElementById('custPhone').value.trim();
         const area = document.getElementById('custArea').value.trim();
-        
+
         // 1. Validation (ERR_1002)
         if (!name || !phone || !area || phone.length !== 10 || isNaN(phone)) {
             alert("Please fill in all required customer details with a valid 10-digit phone number. (Error Code: ERR_1002)");
@@ -2365,18 +2365,18 @@ if (detailsForm) {
             const btnSuccessClose = document.getElementById('btnSuccessClose');
 
             if (successModalTitle) {
-                successModalTitle.textContent = type === 'order' 
-                    ? (dict.successModalTitleOrder || "Order Saved!") 
+                successModalTitle.textContent = type === 'order'
+                    ? (dict.successModalTitleOrder || "Order Saved!")
                     : (dict.successModalTitleChat || "Details Saved!");
             }
             if (successModalSubtitle) {
-                successModalSubtitle.textContent = type === 'order' 
-                    ? (dict.successModalSubtitleOrder || "We are opening WhatsApp to send your order...") 
+                successModalSubtitle.textContent = type === 'order'
+                    ? (dict.successModalSubtitleOrder || "We are opening WhatsApp to send your order...")
                     : (dict.successModalSubtitleChat || "We are opening WhatsApp to start chatting...");
             }
             if (btnSuccessWhatsapp) {
-                btnSuccessWhatsapp.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${type === 'order' 
-                    ? (dict.successBtnSend || "Send on WhatsApp") 
+                btnSuccessWhatsapp.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${type === 'order'
+                    ? (dict.successBtnSend || "Send on WhatsApp")
                     : (dict.successBtnChat || "Open WhatsApp Chat")}`;
             }
             if (btnSuccessClose) {
@@ -2398,7 +2398,7 @@ if (detailsForm) {
                             <span>₹${item.total}</span>
                         </div>`;
                     });
-                    
+
                     const deliveryLine = `
                         <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 8px; border-top: 1px solid #ddd; padding-top: 6px;">
                             <span>${currentLang === 'te' ? 'డెలివరీ ఛార్జ్' : 'Delivery Charge'}:</span>
@@ -2483,7 +2483,7 @@ if (detailsForm) {
             inputs.forEach(i => i.disabled = false);
 
             if (waWindow) {
-                try { waWindow.close(); } catch (e) {}
+                try { waWindow.close(); } catch (e) { }
             }
         });
     });
@@ -2639,9 +2639,9 @@ function saveLeadToDatabase(lead, callback, errorCallback) {
         function attemptSave() {
             attempts++;
             console.log(`Attempting to save lead to Firestore (Attempt ${attempts}/${maxAttempts})...`);
-            
+
             let attemptResolved = false;
-            
+
             const attemptTimeout = setTimeout(() => {
                 if (!attemptResolved) {
                     attemptResolved = true;
@@ -3656,7 +3656,7 @@ if (useFirebase && db) {
             products = dbProducts;
             // Cache catalog locally to prevent fallback to default prices on next load
             localStorage.setItem('kshetriva_catalog', JSON.stringify(products));
-            
+
             renderProducts();
             updateCartUI();
             if (isAdminLoggedIn()) {

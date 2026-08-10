@@ -515,4 +515,11 @@ For queries, orders, or partner programs:
 - **Updated Redirect Target:** Changed all active WhatsApp order and general chat redirect endpoints to use the new number `+91 63046 34987` (`916304634987`) across `script.js` checkout routines, fallback links, and floating widget URLs.
 - **Displayed Contact Info:** Added `+91 63046 34987 (WhatsApp)` as an additional phone number in the contact details in the website footer (`index.html` and `blog.html`), sidebar (`blog.html`), and project documentation to keep user-facing contact information aligned.
 
+### 🗓️ August 11, 2026
+
+#### 1. 🛡️ Database Protection & Bilingual Schema Rules (Weekly Reset Resolution)
+- **Bilingual Validation Rules**: Configured [firestore.rules](file:///d:/Kshetriva_farms/Farms_Version_4/firestore.rules) to validate that all creations and updates to the `products` collection contain both English (`name_en`) and Telugu (`name_te`) string attributes.
+- **Root Cause Fix**: This blocks legacy clients (running cached scripts from before version 4) from executing their un-translated default catalog seeds (`seedDatabase()`) and overwriting edited prices.
+- **Storefront Localhost Warnings**: Added explicit alert dialogs inside `script.js` database operations to warn admins when they perform catalog updates/deletes in sandbox mode on `localhost:8000`.
+
 
