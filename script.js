@@ -360,7 +360,7 @@ let products = [
         pricePerUnit: 58,
         costPrice: 52,
         unit: "kg",
-        image: "https://raw.githubusercontent.com/Kshetriva-Farms/Farms_Version_3.5/main/images/Ridge_Gourd.webp",
+        image: "images/Ridge_Gourd.webp",
         inStock: true,
         docId: "prod_19",
         farmerId: 3

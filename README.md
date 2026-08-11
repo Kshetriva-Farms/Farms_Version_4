@@ -522,4 +522,10 @@ For queries, orders, or partner programs:
 - **Root Cause Fix**: This blocks legacy clients (running cached scripts from before version 4) from executing their un-translated default catalog seeds (`seedDatabase()`) and overwriting edited prices.
 - **Storefront Localhost Warnings**: Added explicit alert dialogs inside `script.js` database operations to warn admins when they perform catalog updates/deletes in sandbox mode on `localhost:8000`.
 
+#### 2. ⚡ Code Optimizations, Branding Consistency & PWA Offline Caching (Version 4.8.2)
+- **Localizing Remote Catalog Assets**: Modified product details configuration in `script.js` to serve the Ridge Gourd image from the local path `images/Ridge_Gourd.webp` instead of an external GitHub raw user content URL. This prevents visual asset rendering failures when running in offline mode.
+- **Branding & Payload Standardization**: Replaced references to the large `images/logo_nav_new.png` (612 KB) with the optimized WebP format `images/logo_nav.webp` (233 KB) across navigation header, body, and footer containers in `blog.html`. This ensures visual alignment with `index.html` and saves ~380 KB of payload on every blog page hit.
+- **Service Worker Offline Cache Completeness**: Incremented the service worker cache version to `kshetriva-farms-cache-v21` inside `sw.js` and added all landing page images (farmers, nav logo, field views) to `ASSETS_TO_CACHE` to ensure a completely functional offline experience.
+- **Cache-Busting Integration**: Bumped the custom script reference version inside `index.html` to `script.js?v=4.1` to trigger immediate update propagation.
+
 

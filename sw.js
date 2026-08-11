@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kshetriva-farms-cache-v20';
+const CACHE_NAME = 'kshetriva-farms-cache-v21';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,7 +13,16 @@ const ASSETS_TO_CACHE = [
   './images/favicon.png',
   './images/logo_pwa_192.png',
   './images/logo_pwa_512.png',
-  './images/logo_nav_new.png',
+  './images/logo_nav.webp',
+  './images/about_farm_wide.webp',
+  './images/farmer_surendhar.webp',
+  './images/farmer_bhaskar.jpg',
+  './images/farmer_ashok.webp',
+  './images/farm_field.webp',
+  './images/harvesting.webp',
+  './images/quality_check.webp',
+  './images/delivery_box.webp',
+  './images/Ridge_Gourd.webp',
   './images/blog_brand_hero.jpg',
   './images/blog_delivery_box.png',
   './images/blog_quality_control.png',
