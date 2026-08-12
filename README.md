@@ -23,7 +23,7 @@ In **Version 4.7**, the platform has matured into a comprehensive **Business Adm
 ### 🔥 Firebase Real-Time Backend Integration
 - **Live Database Syncing:** Built using Firebase Cloud Firestore, featuring active queries with real-time snapshot listeners (`onSnapshot`). Product changes, pricing edits, and stock toggles made in the admin panel propagate instantly to active client pages.
 - **Failover Mock Database:** Integrates a robust offline fallback mode. If Firebase keys are unconfigured or connections fail, the app gracefully redirects operations to local browser `localStorage` for catalogs and session management, guaranteeing zero downtime.
-- **Automatic Catalog Seeding:** On the very first launch, if the Firestore `products` collection is empty, a cloud batch write automatically seeds the database with 9 premium default agricultural catalog documents.
+- **Secure Catalog Seeding:** Client-side auto-seeding is disabled in Version 4. This prevents connection glitches or legacy cached client sessions from executing un-translated default catalog seeds and overwriting administrator price customizations.
 
 ### 🛡️ Secure Admin Dashboard Portal
 - **Hash-URL Router Access**: Secured admin route accessible via `#admin` hash navigation (`/index.html#admin`).
@@ -181,18 +181,9 @@ db.collection("products").orderBy("id", "asc").onSnapshot((snapshot) => {
 });
 ```
 
-### 2. Auto-Seeding
-If the Cloud database collection returns empty, the app compiles the collection using a fast batch execution to populate the initial mock catalog from code structures:
+### 2. Secure Catalog Management
+To protect the catalog from accidental resets or weekly database overrides by legacy cached client scripts, auto-seeding has been completely removed from client code. Any initial catalog setups are handled securely via authenticated administrator CRUD panels, and database schema constraints validate all updates on the server.
 
-```javascript
-const batch = db.batch();
-const collectionRef = db.collection("products");
-defaultCatalog.forEach((item) => {
-    const docRef = collectionRef.doc(`prod_${item.id}`);
-    batch.set(docRef, item);
-});
-batch.commit();
-```
 
 ---
 
