@@ -1715,6 +1715,8 @@ function updateCartUI() {
     let deliveryCharge = 49;
     if (appliedCoupon === 'Delivery@30') {
         deliveryCharge = 30;
+    } else if (appliedCoupon === 'Delivery@Free') {
+        deliveryCharge = 0;
     }
 
     if (cartDeliveryRow) {
@@ -1725,7 +1727,10 @@ function updateCartUI() {
             deliveryLabelEl.textContent = dict.deliveryLabel || 'Delivery Charges:';
         }
         if (cartDeliverySumEl) {
-            if (appliedCoupon === 'Delivery@30') {
+            if (appliedCoupon === 'Delivery@Free') {
+                const freeText = dict.freeDelivery || 'Free Delivery';
+                cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹49</del> <span style="color: #2e7d32; font-weight: 600;">${freeText}</span> <span style="font-size: 0.75rem; color: #2e7d32; display: block; font-weight: 500; text-align: right;">(Delivery@Free)</span>`;
+            } else if (appliedCoupon === 'Delivery@30') {
                 cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹49</del> <span style="color: #2e7d32; font-weight: 600;">₹30</span> <span style="font-size: 0.75rem; color: #2e7d32; display: block; font-weight: 500; text-align: right;">(Delivery@30)</span>`;
             } else {
                 cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹69</del> <span style="color: #2e7d32; font-weight: 600;">₹49</span>`;
@@ -1892,6 +1897,9 @@ function sendCartWhatsAppOrder(name, phone, area, waWindow) {
     let originalDeliveryDisplay = "~₹69~";
     if (appliedCoupon === 'Delivery@30') {
         deliveryCharge = 30;
+        originalDeliveryDisplay = "~₹49~";
+    } else if (appliedCoupon === 'Delivery@Free') {
+        deliveryCharge = 0;
         originalDeliveryDisplay = "~₹49~";
     }
     let finalTotal = subtotal;
@@ -2062,7 +2070,7 @@ function compileWhatsAppUrl(lead, isMobileScheme = false) {
         });
         message += `================================\n`;
 
-        let originalDeliveryDisplay = lead.deliveryCharge === 30 ? "~₹49~" : "~₹69~";
+        let originalDeliveryDisplay = (lead.deliveryCharge === 30 || lead.deliveryCharge === 0) ? "~₹49~" : "~₹69~";
         if (currentTier) {
             message += isTe ? `ఉప మొత్తం: ₹${lead.totalAmount + lead.discountAmount - lead.deliveryCharge}\n` : `Subtotal: ₹${lead.totalAmount + lead.discountAmount - lead.deliveryCharge}\n`;
             message += isTe ? `బాస్కెట్ తగ్గింపు (${Math.round(currentTier.discount * 100)}%): -₹${lead.discountAmount}\n` : `Basket Discount (${Math.round(currentTier.discount * 100)}%): -₹${lead.discountAmount}\n`;
@@ -2312,7 +2320,13 @@ if (detailsForm) {
             });
             const uniqueItems = cartKeys.length;
             const currentTier = detectBasketTier(uniqueItems);
-            deliveryCharge = appliedCoupon === 'Delivery@30' ? 30 : 49;
+            if (appliedCoupon === 'Delivery@Free') {
+                deliveryCharge = 0;
+            } else if (appliedCoupon === 'Delivery@30') {
+                deliveryCharge = 30;
+            } else {
+                deliveryCharge = 49;
+            }
             totalAmount = subtotal;
             if (currentTier) {
                 discountAmount = Math.round(subtotal * currentTier.discount * 100) / 100;
@@ -3761,7 +3775,7 @@ function initCouponLogic() {
         } else {
             // Apply coupon
             const code = couponInput.value.trim();
-            if (code === 'Delivery@30') {
+            if (code === 'Delivery@30' || code === 'Delivery@Free') {
                 appliedCoupon = code;
                 localStorage.setItem('kshetriva_coupon', code);
                 couponInput.disabled = true;

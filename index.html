@@ -1290,26 +1290,38 @@
     <!-- Register Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => {
-                        console.log('🌾 Service Worker registered successfully:', reg.scope);
-
-                        // Force check for updates to service worker on load
-                        reg.update();
-                    })
-                    .catch((err) => console.warn('🌾 Service Worker registration failed:', err));
-
-                // Listen for service worker updates taking control of client and auto-reload the page
-                let refreshing = false;
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (!refreshing) {
-                        refreshing = true;
-                        console.log('🌾 Service Worker updated! Reloading page to transition to Version 3.');
-                        window.location.reload();
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            if (isLocal) {
+                // Unregister any active service workers on localhost to prevent developer caching issues
+                navigator.serviceWorker.getRegistrations().then((registrations) => {
+                    for (let reg of registrations) {
+                        reg.unregister().then((unregistered) => {
+                            if (unregistered) console.log("🌾 Localhost: Unregistered active service worker successfully.");
+                        });
                     }
                 });
-            });
+            } else {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then((reg) => {
+                            console.log('🌾 Service Worker registered successfully:', reg.scope);
+
+                            // Force check for updates to service worker on load
+                            reg.update();
+                        })
+                        .catch((err) => console.warn('🌾 Service Worker registration failed:', err));
+
+                    // Listen for service worker updates taking control of client and auto-reload the page
+                    let refreshing = false;
+                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                        if (!refreshing) {
+                            refreshing = true;
+                            console.log('🌾 Service Worker updated! Reloading page.');
+                            window.location.reload();
+                        }
+                    });
+                });
+            }
         }
     </script>
 </body>
