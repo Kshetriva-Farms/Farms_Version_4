@@ -1121,9 +1121,12 @@
                                 </h4>
                                 <p style="margin: 4px 0 0 0; font-size: 0.84rem; color: #64748b;">Selling & Cost prices accept up to 2 decimal places. Click the checkmark to recalculate.</p>
                             </div>
-                            <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                                 <button class="btn btn-primary" id="btnExportWeekExcel" style="padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; display: flex; align-items: center; gap: 8px; background: #2e7d32; border-color: #2e7d32; font-weight: 600;">
                                     <i class="fa-solid fa-file-excel"></i> Download Week Excel (.xlsx)
+                                </button>
+                                <button class="btn btn-primary" id="btnExportWeekOrdersExcel" style="padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; display: flex; align-items: center; gap: 8px; background: #7c3aed; border-color: #7c3aed; font-weight: 600;">
+                                    <i class="fa-solid fa-users"></i> Download Customer Orders (.xlsx)
                                 </button>
                                 <button class="btn btn-secondary" onclick="closeWeekDetails()" style="padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; font-weight: 600;">Close Details</button>
                             </div>
@@ -1272,6 +1275,34 @@
                             </div>
                             <div id="weekDetailsSummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
                                 <!-- Injected via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Section Divider -->
+                        <div class="section-divider-bar">
+                            <span class="section-divider-badge"><i class="fa-solid fa-users" style="color: #7c3aed;"></i> 5. Week Customer Orders & Itemized Products Log</span>
+                        </div>
+
+                        <!-- Section 5: Week Customer Orders & Purchases Log (Purple Theme) -->
+                        <div class="week-section-card week-theme-orders-log" id="weekOrdersLogCard">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                                <div>
+                                    <h4 style="font-size: 1.05rem; color: #1e1b4b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa-solid fa-clipboard-list" style="color: #7c3aed;"></i> Customer Orders & Itemized Purchases Log
+                                    </h4>
+                                    <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: #6b7280;">View all customers who ordered this week, itemized products purchased, prices, delivery info, and special instructions.</p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <span id="weekOrdersCountBadge" style="background: #ede9fe; color: #6d28d9; font-weight: 700; padding: 5px 14px; border-radius: 20px; font-size: 0.84rem; border: 1.5px solid #ddd6fe;">
+                                        0 Orders
+                                    </span>
+                                    <button class="btn btn-primary" id="btnExportWeekOrdersExcel2" style="padding: 7px 14px; font-size: 0.82rem; border-radius: 8px; background: #7c3aed; border-color: #7c3aed; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fa-solid fa-file-excel"></i> Download Week Orders Excel (.xlsx)
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="weekCustomerOrdersListContainer">
+                                <!-- Populated dynamically via JS -->
                             </div>
                         </div>
                     </div>

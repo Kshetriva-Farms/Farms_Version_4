@@ -3550,6 +3550,26 @@ footer {
   border-left: 5px solid #78716c;
 }
 
+/* Theme 5: Customer Orders & Purchases Log (Purple / Indigo Theme) */
+.week-theme-orders-log {
+  background: #fcfaff;
+  border: 1.5px solid #e9d5ff;
+  border-left: 5px solid #7c3aed;
+}
+
+.week-order-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #d8b4fe;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .week-add-item-card {
   background: #f4fbf5;
   border: 1.5px solid #a3d9a5;

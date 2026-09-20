@@ -5770,9 +5770,12 @@ function renderCompanyAnalytics() {
                 <td>${expBreakdownHtml}</td>
                 <td style="${profitStyle}">${profitLabel}</td>
                 <td>
-                    <div style="display: flex; gap: 5px;">
-                        <button class="btn btn-secondary" onclick="viewWeekDetails('${wKey}')" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 12px;">
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="viewWeekDetails('${wKey}')" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 12px;" title="View Product Sales & Profits Breakdown">
                             <i class="fa-solid fa-magnifying-glass-chart"></i> Details
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportWeekCustomerOrdersExcel('${wKey}')" style="padding: 6px 10px; font-size: 0.78rem; border-radius: 12px; border: 1.5px solid #7c3aed; color: #7c3aed; background: transparent;" title="Download Week Customer Orders (.xlsx)">
+                            <i class="fa-solid fa-file-invoice"></i> Orders (.xlsx)
                         </button>
                         ${clearBtnHtml}
                     </div>
@@ -5924,7 +5927,7 @@ function exportCompanyWorkbookExcel() {
     });
 }
 
-// Single-Week Report Excel Export (Multi-Sheet: Product Breakdown, Operational Expenses, Financial Summary, Orders Log)
+// Single-Week Report Excel Export (Multi-Sheet: Product Breakdown with Subheadings, Transport Charges & Full Tally, Operational Expenses, Financial Summary, Orders Log)
 function exportWeekReportToExcel(weekKey) {
     if (!window.statsWeeksData || !window.statsWeeksData[weekKey]) {
         alert("No data available for selected week.");
@@ -5940,72 +5943,177 @@ function exportWeekReportToExcel(weekKey) {
         const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
         const wb = XLSX.utils.book_new();
 
-        // Sheet 1: Product Sales & Profits Breakdown
+        // 1. Separate catalog products and other custom products
+        const pKeys = Object.keys(wData.products || {});
+        const catalogItems = [];
+        const otherItems = [];
+
+        pKeys.forEach(pId => {
+            const pObj = wData.products[pId];
+            const isOther = pObj.isOther || (typeof pId === 'string' && pId.startsWith('other_')) || !products.some(p => p.id === parseInt(pId));
+            const prod = !isOther ? products.find(p => p.id === parseInt(pId)) : null;
+
+            let displayName = pObj.name;
+            let displayUnit = pObj.unit || 'unit';
+            if (prod) {
+                const translatedProd = getTranslatedProduct(prod);
+                displayName = translatedProd.name;
+                displayUnit = translatedProd.unit;
+            }
+
+            const subtotalSales = Math.round((pObj.totalSales || 0) * 100) / 100;
+            const subtotalExpense = Math.round((pObj.totalExpense || 0) * 100) / 100;
+            const netProfit = Math.round((subtotalSales - subtotalExpense) * 100) / 100;
+            const curSell = pObj.pricePerUnit !== undefined ? (Math.round(pObj.pricePerUnit * 100) / 100) : (Math.round((pObj.price || 0) * 100) / 100);
+            const curCost = Math.round((pObj.costPrice || 0) * 100) / 100;
+            const qtyVal = Math.round((pObj.qty || 0) * 100) / 100;
+
+            const itemEntry = {
+                id: pId,
+                name: displayName,
+                qty: qtyVal,
+                unit: displayUnit,
+                sellPrice: curSell,
+                costPrice: curCost,
+                sales: subtotalSales,
+                cost: subtotalExpense,
+                profit: netProfit,
+                isOther: isOther
+            };
+
+            if (isOther) {
+                otherItems.push(itemEntry);
+            } else {
+                catalogItems.push(itemEntry);
+            }
+        });
+
+        // Totals calculation
+        let catalogSales = 0, catalogCosts = 0;
+        catalogItems.forEach(it => {
+            catalogSales += it.sales;
+            catalogCosts += it.cost;
+        });
+        catalogSales = Math.round(catalogSales * 100) / 100;
+        catalogCosts = Math.round(catalogCosts * 100) / 100;
+        const catalogProfit = Math.round((catalogSales - catalogCosts) * 100) / 100;
+
+        let otherSales = 0, otherCosts = 0;
+        otherItems.forEach(it => {
+            otherSales += it.sales;
+            otherCosts += it.cost;
+        });
+        otherSales = Math.round(otherSales * 100) / 100;
+        otherCosts = Math.round(otherCosts * 100) / 100;
+        const otherProfit = Math.round((otherSales - otherCosts) * 100) / 100;
+
+        const grandSales = Math.round((catalogSales + otherSales) * 100) / 100;
+        const grandProductExpenses = Math.round((catalogCosts + otherCosts) * 100) / 100;
+
+        const opExpensesList = getWeekOperationalExpenses(weekKey);
+        const opExpensesTotal = getWeekOperationalExpensesTotal(weekKey);
+        const totalDiscount = Math.round((wData.totalDiscount || 0) * 100) / 100;
+        const totalDeliveryCharge = Math.round((wData.totalDeliveryCharge || 0) * 100) / 100;
+        const totalAllExpenses = Math.round((grandProductExpenses + opExpensesTotal) * 100) / 100;
+        const grossOperatingProfit = Math.round((grandSales - totalAllExpenses) * 100) / 100;
+        const weeklyNetProfit = Math.round(((grandSales + totalDeliveryCharge) - (totalAllExpenses + totalDiscount)) * 100) / 100;
+
+        // Sheet 1: Product Sales & Profits Breakdown (Unified table with Other Products subheading and Transport charges)
         const s1Data = [
-            [`Kshetriva Farms - Product Sales & Profits Breakdown`],
+            [`Kshetriva Farms - Product Sales, Transport & Profits Breakdown`],
             [`Reporting Period: Week of ${weekKey}`],
             [`Exported On: ${new Date().toLocaleString('en-IN')}`],
             [],
-            ["Product / Item Name", "Quantity Sold", "Unit", "Selling Price (₹)", "Cost Price (₹)", "Subtotal Sales (₹)", "Subtotal Expenses (₹)", "Product Profit / Loss (₹)"]
+            ["Product / Item Name", "Quantity Sold", "Unit", "Selling Price (₹)", "Cost Price (₹)", "Subtotal Sales (₹)", "Subtotal Costs (₹)", "Transport / Ops Charge (₹)", "Net Profit / Loss (₹)"]
         ];
 
-        const pKeys = Object.keys(wData.products);
-        let grandSales = 0;
-        let grandProductExpenses = 0;
-
-        if (pKeys.length === 0) {
-            s1Data.push(["No products sold in this week."]);
+        // Section A: Standard Catalog Products
+        s1Data.push(["[CATALOG PRODUCTS]", "", "", "", "", "", "", "", ""]);
+        if (catalogItems.length === 0) {
+            s1Data.push(["No catalog products sold this week.", "-", "-", "-", "-", 0, 0, "-", 0]);
         } else {
-            pKeys.forEach(pId => {
-                const pObj = wData.products[pId];
-                const prod = products.find(p => p.id === parseInt(pId));
-                let displayName = pObj.name;
-                let displayUnit = pObj.unit || 'unit';
-                if (prod) {
-                    const translatedProd = getTranslatedProduct(prod);
-                    displayName = translatedProd.name;
-                    displayUnit = translatedProd.unit;
-                }
-
-                const subtotalSales = Math.round(pObj.totalSales * 100) / 100;
-                const subtotalExpense = Math.round(pObj.totalExpense * 100) / 100;
-                const netProfit = Math.round((subtotalSales - subtotalExpense) * 100) / 100;
-                const curSell = pObj.pricePerUnit !== undefined ? (Math.round(pObj.pricePerUnit * 100) / 100) : (Math.round(pObj.price * 100) / 100);
-                const curCost = Math.round(pObj.costPrice * 100) / 100;
-                const qtyVal = Math.round(pObj.qty * 100) / 100;
-
-                grandSales += subtotalSales;
-                grandProductExpenses += subtotalExpense;
-
+            catalogItems.forEach(it => {
                 s1Data.push([
-                    displayName,
-                    qtyVal,
-                    displayUnit,
-                    curSell,
-                    curCost,
-                    subtotalSales,
-                    subtotalExpense,
-                    netProfit
+                    it.name,
+                    it.qty,
+                    it.unit,
+                    it.sellPrice,
+                    it.costPrice,
+                    it.sales,
+                    it.cost,
+                    "-",
+                    it.profit
                 ]);
             });
-
-            const grandProfit = Math.round((grandSales - grandProductExpenses) * 100) / 100;
-            s1Data.push([]);
-            s1Data.push([
-                "TOTALS", "-", "-", "-", "-",
-                Math.round(grandSales * 100) / 100,
-                Math.round(grandProductExpenses * 100) / 100,
-                grandProfit
-            ]);
         }
+        s1Data.push(["Catalog Products Subtotal", "-", "-", "-", "-", catalogSales, catalogCosts, "-", catalogProfit]);
+        s1Data.push([]);
+
+        // Section B: Other Products (differentiated with empty columns)
+        s1Data.push(["Other Products", "", "", "", "", "", "", "", ""]);
+        if (otherItems.length === 0) {
+            s1Data.push(["No other / custom products recorded this week.", "-", "-", "-", "-", 0, 0, "-", 0]);
+        } else {
+            otherItems.forEach(it => {
+                s1Data.push([
+                    it.name,
+                    it.qty,
+                    it.unit,
+                    it.sellPrice,
+                    it.costPrice,
+                    it.sales,
+                    it.cost,
+                    "-",
+                    it.profit
+                ]);
+            });
+        }
+        s1Data.push(["Other Products Subtotal", "-", "-", "-", "-", otherSales, otherCosts, "-", otherProfit]);
+        s1Data.push([]);
+
+        // Section C: Weekly Transport & Operational Charges
+        s1Data.push(["Transport & Operational Charges", "", "", "", "", "", "", "", ""]);
+        if (opExpensesList.length === 0) {
+            s1Data.push(["No transport or operational expenses logged.", "-", "-", "-", "-", "-", "-", 0, 0]);
+        } else {
+            opExpensesList.forEach(exp => {
+                const expTitle = exp.title ? (exp.title + (exp.category ? ` (${exp.category})` : '')) : 'Operational Expense';
+                const expAmt = Math.round(exp.amount * 100) / 100;
+                s1Data.push([
+                    expTitle,
+                    1,
+                    "charge",
+                    "-",
+                    "-",
+                    "-",
+                    "-",
+                    expAmt,
+                    -expAmt
+                ]);
+            });
+        }
+        s1Data.push(["Total Transport & Ops Charges", "-", "-", "-", "-", "-", "-", opExpensesTotal, -opExpensesTotal]);
+        s1Data.push([]);
+
+        // Section D: Complete Financial Tally & Profit/Loss Reconciliation
+        s1Data.push(["========================================================================================================="]);
+        s1Data.push(["WEEKLY FINANCIAL TALLY & PROFIT / (LOSS) RECONCILIATION", "", "", "", "", "", "", "", ""]);
+        s1Data.push(["1. Gross Catalog Products Sales", "", "", "", "", catalogSales, "", "", ""]);
+        s1Data.push(["2. Gross Other Products Sales", "", "", "", "", otherSales, "", "", ""]);
+        s1Data.push(["TOTAL GROSS SALES REVENUE (1 + 2)", "", "", "", "", grandSales, "", "", ""]);
+        s1Data.push(["3. Total Product Cost Expenses (COGS)", "", "", "", "", "", grandProductExpenses, "", ""]);
+        s1Data.push(["4. Total Transport & Operational Expenses", "", "", "", "", "", "", opExpensesTotal, ""]);
+        s1Data.push(["COMBINED TOTAL EXPENSES (3 + 4)", "", "", "", "", "", totalAllExpenses, "", ""]);
+        s1Data.push(["GROSS OPERATING PROFIT (Sales - Total Expenses)", "", "", "", "", "", "", "", grossOperatingProfit]);
+        s1Data.push(["5. Total Customer Basket Discounts Applied", "", "", "", "", -totalDiscount, "", "", -totalDiscount]);
+        s1Data.push(["6. Customer Delivery Charges Collected", "", "", "", "", totalDeliveryCharge, "", "", totalDeliveryCharge]);
+        s1Data.push(["FINAL NET PROFIT / (LOSS) FOR THE WEEK", "", "", "", "", "", "", "", weeklyNetProfit]);
 
         const ws1 = XLSX.utils.aoa_to_sheet(s1Data);
-        ws1['!cols'] = [{ wch: 28 }, { wch: 15 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 24 }];
+        ws1['!cols'] = [{ wch: 36 }, { wch: 15 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 26 }, { wch: 24 }];
         XLSX.utils.book_append_sheet(wb, ws1, "Product Breakdown");
 
-        // Sheet 2: Weekly Operational Expenses (Transport, Fuel, Misc)
-        const opExpensesList = getWeekOperationalExpenses(weekKey);
-        const opExpensesTotal = getWeekOperationalExpensesTotal(weekKey);
+        // Sheet 2: Weekly Operational Expenses
         const s2Data = [
             [`Weekly Operational Expenses (Transport, Fuel, Packaging, etc.)`],
             [`Reporting Period: Week of ${weekKey}`],
@@ -6032,21 +6140,19 @@ function exportWeekReportToExcel(weekKey) {
         XLSX.utils.book_append_sheet(wb, ws2, "Operational Expenses");
 
         // Sheet 3: Financial Summary Overview
-        const totalDiscount = Math.round((wData.totalDiscount || 0) * 100) / 100;
-        const totalDeliveryCharge = Math.round((wData.totalDeliveryCharge || 0) * 100) / 100;
-        const totalAllExpenses = Math.round((grandProductExpenses + opExpensesTotal) * 100) / 100;
-        const weeklyNetProfit = Math.round(((grandSales + totalDeliveryCharge) - (totalAllExpenses + totalDiscount)) * 100) / 100;
-
         const s3Data = [
             ["Kshetriva Farms - Weekly Financial Summary"],
             [`Reporting Period: Week of ${weekKey}`],
             [`Exported On: ${new Date().toLocaleString('en-IN')}`],
             [],
             ["Financial Metric", "Amount (₹)"],
-            ["Gross Products Sales", Math.round(grandSales * 100) / 100],
-            ["Product Cost Expenses (COGS)", Math.round(grandProductExpenses * 100) / 100],
+            ["Gross Catalog Products Sales", catalogSales],
+            ["Gross Other Products Sales", otherSales],
+            ["Total Gross Sales Revenue", grandSales],
+            ["Product Cost Expenses (COGS)", grandProductExpenses],
             ["Transport, Fuel & Operational Expenses", opExpensesTotal],
-            ["Total Weekly Expenses (Products + Ops)", totalAllExpenses],
+            ["Combined Weekly Expenses (Products + Ops)", totalAllExpenses],
+            ["Gross Operating Profit (Sales - Expenses)", grossOperatingProfit],
             ["Total Customer Discounts Applied", -totalDiscount],
             ["Delivery Charges Collected", totalDeliveryCharge],
             ["Weekly Net Profit / Loss", weeklyNetProfit]
@@ -6095,6 +6201,383 @@ function exportWeekReportToExcel(weekKey) {
     });
 }
 
+// Dedicated Week Customer Orders & Itemized Products Excel Export
+function exportWeekCustomerOrdersExcel(weekKey) {
+    if (!weekKey) {
+        weekKey = window.currentOpenWeekKey || getWeekRangeString(new Date().toISOString());
+    }
+    if (typeof XLSX === 'undefined') {
+        alert("Excel library is loading, please try again in a moment.");
+        return;
+    }
+
+    fetchAllLeads().then((leads) => {
+        const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
+        if (weekOrders.length === 0) {
+            alert(`No customer orders found for week: ${weekKey}`);
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+        const sortedOrders = [...weekOrders].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        // Sheet 1: Customer Orders Master Summary
+        const s1Data = [
+            [`Kshetriva Farms - Customer Orders Master Summary`],
+            [`Reporting Period: Week of ${weekKey}`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Order ID", "Date & Time", "Customer Name", "Phone Number", "Delivery Area / Address", "Total Items Count", "Gross Items Total (₹)", "Discount (₹)", "Delivery Charge (₹)", "Final Order Amount (₹)", "Order Status", "Payment Method", "Customer Comments / Notes", "Ordered Items Summary"]
+        ];
+
+        let grandItemsCount = 0;
+        let grandGrossTotal = 0;
+        let grandDiscounts = 0;
+        let grandDeliveryCharges = 0;
+        let grandFinalAmount = 0;
+
+        sortedOrders.forEach(o => {
+            const dateStr = o.timestamp ? new Date(o.timestamp).toLocaleString('en-IN') : '-';
+            const items = o.items || [];
+            const itemsCount = items.reduce((sum, it) => sum + (parseFloat(it.qty) || 1), 0);
+            const grossTotal = items.reduce((sum, it) => sum + (parseFloat(it.total) || ((parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1))), 0);
+            const discount = parseFloat(o.discountAmount) || 0;
+            const deliveryCharge = parseFloat(o.deliveryCharge) || 0;
+            const finalAmount = parseFloat(o.totalAmount) || parseFloat(o.totalSum) || Math.max(0, grossTotal - discount + deliveryCharge);
+            const itemsSummary = items.length > 0 ? items.map(it => `${it.name} (${it.qty} ${it.option || it.unit || ''} @ ₹${it.price || 0})`).join('; ') : (o.cartSummary || '-');
+            const commentStr = o.comment || o.orderNote || o.customerComment || '-';
+
+            grandItemsCount += itemsCount;
+            grandGrossTotal += grossTotal;
+            grandDiscounts += discount;
+            grandDeliveryCharges += deliveryCharge;
+            grandFinalAmount += finalAmount;
+
+            s1Data.push([
+                o.id || '-',
+                dateStr,
+                o.name || '-',
+                o.phone || '-',
+                o.area || '-',
+                Math.round(itemsCount * 100) / 100,
+                Math.round(grossTotal * 100) / 100,
+                Math.round(discount * 100) / 100,
+                Math.round(deliveryCharge * 100) / 100,
+                Math.round(finalAmount * 100) / 100,
+                o.status || 'pending',
+                o.paymentMethod || 'Cash / UPI on Delivery',
+                commentStr,
+                itemsSummary
+            ]);
+        });
+
+        s1Data.push([]);
+        s1Data.push([
+            "TOTALS", "-", "-", "-", "-",
+            Math.round(grandItemsCount * 100) / 100,
+            Math.round(grandGrossTotal * 100) / 100,
+            Math.round(grandDiscounts * 100) / 100,
+            Math.round(grandDeliveryCharges * 100) / 100,
+            Math.round(grandFinalAmount * 100) / 100,
+            "-", "-", "-", "-"
+        ]);
+
+        const ws1 = XLSX.utils.aoa_to_sheet(s1Data);
+        ws1['!cols'] = [
+            { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 24 },
+            { wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 18 }, { wch: 20 },
+            { wch: 14 }, { wch: 22 }, { wch: 35 }, { wch: 45 }
+        ];
+        XLSX.utils.book_append_sheet(wb, ws1, "Orders Summary");
+
+        // Sheet 2: Itemized Customer Purchases (Line-by-Line Breakdown)
+        const s2Data = [
+            [`Kshetriva Farms - Itemized Customer Product Purchases`],
+            [`Reporting Period: Week of ${weekKey}`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Order ID", "Date & Time", "Customer Name", "Customer Phone", "Delivery Area", "Product / Item Name", "Item Category / Type", "Variant / Option", "Quantity", "Unit", "Unit Price (₹)", "Line Item Subtotal (₹)", "Customer Comments / Instructions", "Order Status"]
+        ];
+
+        let lineItemTotalSum = 0;
+        let lineItemTotalQty = 0;
+        const demandAggregate = {};
+
+        sortedOrders.forEach(o => {
+            const dateStr = o.timestamp ? new Date(o.timestamp).toLocaleString('en-IN') : '-';
+            const items = o.items || [];
+            const commentStr = o.comment || o.orderNote || o.customerComment || '-';
+
+            if (items.length === 0) {
+                s2Data.push([
+                    o.id || '-',
+                    dateStr,
+                    o.name || '-',
+                    o.phone || '-',
+                    o.area || '-',
+                    o.cartSummary || 'Custom Package',
+                    'Standard',
+                    'Default',
+                    1,
+                    'order',
+                    o.totalAmount || 0,
+                    o.totalAmount || 0,
+                    commentStr,
+                    o.status || 'pending'
+                ]);
+                lineItemTotalSum += (o.totalAmount || 0);
+                lineItemTotalQty += 1;
+            } else {
+                items.forEach(it => {
+                    const isOther = it.isOther || (typeof it.id === 'string' && it.id.startsWith('other_')) || !products.some(p => p.id === parseInt(it.id));
+                    const prodType = isOther ? 'Other / Custom Product' : 'Standard Catalog';
+                    const qtyVal = parseFloat(it.qty) || 1;
+                    const unitPrice = parseFloat(it.price) || 0;
+                    const lineSubtotal = Math.round((parseFloat(it.total) || (unitPrice * qtyVal)) * 100) / 100;
+                    const variantStr = it.option || it.unit || 'Standard';
+                    const unitStr = it.unit || (it.option ? 'unit' : 'unit');
+
+                    lineItemTotalSum += lineSubtotal;
+                    lineItemTotalQty += qtyVal;
+
+                    // Aggregate for Sheet 3
+                    const aggKey = it.name || `Item_${it.id}`;
+                    if (!demandAggregate[aggKey]) {
+                        demandAggregate[aggKey] = {
+                            name: it.name,
+                            type: prodType,
+                            unit: unitStr,
+                            totalQty: 0,
+                            ordersCount: 0,
+                            orderIds: new Set(),
+                            totalRevenue: 0
+                        };
+                    }
+                    demandAggregate[aggKey].totalQty += qtyVal;
+                    demandAggregate[aggKey].orderIds.add(o.id);
+                    demandAggregate[aggKey].totalRevenue += lineSubtotal;
+
+                    s2Data.push([
+                        o.id || '-',
+                        dateStr,
+                        o.name || '-',
+                        o.phone || '-',
+                        o.area || '-',
+                        it.name || '-',
+                        prodType,
+                        variantStr,
+                        Math.round(qtyVal * 100) / 100,
+                        unitStr,
+                        Math.round(unitPrice * 100) / 100,
+                        lineSubtotal,
+                        commentStr,
+                        o.status || 'pending'
+                    ]);
+                });
+            }
+        });
+
+        s2Data.push([]);
+        s2Data.push([
+            "TOTALS", "-", "-", "-", "-", "-", "-", "-",
+            Math.round(lineItemTotalQty * 100) / 100,
+            "-", "-",
+            Math.round(lineItemTotalSum * 100) / 100,
+            "-", "-"
+        ]);
+
+        const ws2 = XLSX.utils.aoa_to_sheet(s2Data);
+        ws2['!cols'] = [
+            { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 22 },
+            { wch: 28 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 10 },
+            { wch: 16 }, { wch: 20 }, { wch: 35 }, { wch: 14 }
+        ];
+        XLSX.utils.book_append_sheet(wb, ws2, "Itemized Purchases");
+
+        // Sheet 3: Product Demand Aggregate
+        const s3Data = [
+            [`Kshetriva Farms - Weekly Product Demand & Revenue Aggregate`],
+            [`Reporting Period: Week of ${weekKey}`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Product / Item Name", "Product Type", "Unit", "Total Quantity Ordered", "Number of Customer Orders", "Average Selling Price (₹)", "Total Sales Revenue (₹)"]
+        ];
+
+        const aggKeys = Object.keys(demandAggregate).sort((a, b) => demandAggregate[b].totalRevenue - demandAggregate[a].totalRevenue);
+        let aggGrandQty = 0;
+        let aggGrandRevenue = 0;
+
+        if (aggKeys.length === 0) {
+            s3Data.push(["No products recorded in orders."]);
+        } else {
+            aggKeys.forEach(k => {
+                const item = demandAggregate[k];
+                const totalRev = Math.round(item.totalRevenue * 100) / 100;
+                const totalQ = Math.round(item.totalQty * 100) / 100;
+                const avgPrice = totalQ > 0 ? Math.round((totalRev / totalQ) * 100) / 100 : 0;
+                aggGrandQty += totalQ;
+                aggGrandRevenue += totalRev;
+
+                s3Data.push([
+                    item.name,
+                    item.type,
+                    item.unit,
+                    totalQ,
+                    item.orderIds.size,
+                    avgPrice,
+                    totalRev
+                ]);
+            });
+
+            s3Data.push([]);
+            s3Data.push([
+                "TOTALS", "-", "-",
+                Math.round(aggGrandQty * 100) / 100,
+                sortedOrders.length,
+                "-",
+                Math.round(aggGrandRevenue * 100) / 100
+            ]);
+        }
+
+        const ws3 = XLSX.utils.aoa_to_sheet(s3Data);
+        ws3['!cols'] = [{ wch: 32 }, { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 20 }, { wch: 24 }];
+        XLSX.utils.book_append_sheet(wb, ws3, "Product Demand Aggregate");
+
+        const safeName = weekKey.replace(/[^a-zA-Z0-9]/g, '_');
+        downloadXlsxWorkbook(wb, `kshetriva_week_${safeName}_customer_orders.xlsx`);
+    });
+}
+
+// Render Week Customer Orders List in Section 5 of Week Details Modal
+function renderWeekCustomerOrdersList(weekKey) {
+    const listContainer = document.getElementById('weekCustomerOrdersListContainer');
+    const countBadge = document.getElementById('weekOrdersCountBadge');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = `<div style="text-align: center; color: #888; padding: 20px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Loading customer orders...</div>`;
+
+    fetchAllLeads().then((leads) => {
+        const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
+        const sortedOrders = [...weekOrders].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (countBadge) {
+            countBadge.textContent = `${sortedOrders.length} Order${sortedOrders.length === 1 ? '' : 's'}`;
+        }
+
+        if (sortedOrders.length === 0) {
+            listContainer.innerHTML = `
+                <div style="text-align: center; color: #888; padding: 24px; background: white; border-radius: 10px; border: 1px dashed #cbd5e1;">
+                    <i class="fa-solid fa-clipboard-list" style="font-size: 1.8rem; margin-bottom: 8px; display: block; color: #7c3aed;"></i>
+                    No customer orders recorded for this week yet.
+                </div>
+            `;
+            return;
+        }
+
+        let html = `
+            <div class="admin-table-container" style="background: white; border-radius: 10px; border: 1.5px solid #e2e8f0; overflow-x: auto;">
+                <table class="admin-products-table" style="background: white; width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+                            <th style="padding: 10px 12px; font-size: 0.82rem; text-align: left;">Order ID & Time</th>
+                            <th style="padding: 10px 12px; font-size: 0.82rem; text-align: left;">Customer & Area</th>
+                            <th style="padding: 10px 12px; font-size: 0.82rem; text-align: left;">Ordered Products & Prices</th>
+                            <th style="padding: 10px 12px; font-size: 0.82rem; text-align: right;">Total Amount</th>
+                            <th style="padding: 10px 12px; font-size: 0.82rem; text-align: center;">Status</th>
+                            <th style="padding: 10px 12px; font-size: 0.82rem; text-align: left;">Comments / Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        sortedOrders.forEach(o => {
+            const dateStr = o.timestamp ? new Date(o.timestamp).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+            const items = o.items || [];
+            const discount = parseFloat(o.discountAmount) || 0;
+            const deliveryCharge = parseFloat(o.deliveryCharge) || 0;
+            const finalAmount = parseFloat(o.totalAmount) || parseFloat(o.totalSum) || 0;
+            const comment = o.comment || o.orderNote || o.customerComment || '';
+
+            let itemsHtml = '';
+            if (items.length > 0) {
+                itemsHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        ${items.map(it => {
+                            const isOther = it.isOther || (typeof it.id === 'string' && it.id.startsWith('other_')) || !products.some(p => p.id === parseInt(it.id));
+                            const badgeBg = isOther ? '#f0fdf4' : '#f8fafc';
+                            const badgeBorder = isOther ? '#86efac' : '#cbd5e1';
+                            const badgeColor = isOther ? '#15803d' : '#1e293b';
+                            const itemTotal = it.total || (it.price * (it.qty || 1));
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; background: ${badgeBg}; border: 1px solid ${badgeBorder}; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; gap: 8px;">
+                                    <span style="font-weight: 600; color: ${badgeColor};">${escapeHtml(it.name)}</span>
+                                    <span style="color: #64748b;">${it.qty} ${escapeHtml(it.option || it.unit || '')} &times; ₹${it.price || 0} = <strong style="color: #0f172a;">₹${(Math.round(itemTotal * 100) / 100).toFixed(2)}</strong></span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                itemsHtml = `<span style="font-size: 0.82rem; color: #64748b;">${escapeHtml(o.cartSummary || 'Custom Order')}</span>`;
+            }
+
+            let totalsBreakdownHtml = `<strong style="font-size: 0.95rem; color: #15803d;">₹${finalAmount.toFixed(2)}</strong>`;
+            if (discount > 0 || deliveryCharge > 0) {
+                totalsBreakdownHtml += `
+                    <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+                        ${discount > 0 ? `<span style="color: #b91c1c;">Disc: -₹${discount.toFixed(0)}</span> ` : ''}
+                        ${deliveryCharge > 0 ? `<span style="color: #0d9488;">Del: +₹${deliveryCharge.toFixed(0)}</span>` : ''}
+                    </div>
+                `;
+            }
+
+            const statusColors = {
+                'confirmed': { bg: '#dcfce7', text: '#15803d' },
+                'delivered': { bg: '#e0e7ff', text: '#4338ca' },
+                'pending': { bg: '#fef3c7', text: '#b45309' },
+                'cancelled': { bg: '#fee2e2', text: '#b91c1c' }
+            };
+            const sc = statusColors[o.status] || { bg: '#f1f5f9', text: '#475569' };
+
+            html += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 10px 12px; font-size: 0.82rem;">
+                        <span style="font-family: monospace; font-weight: 700; color: #475569; display: block;">#${escapeHtml(String(o.id).slice(-8))}</span>
+                        <span style="color: #94a3b8; font-size: 0.75rem;">${dateStr}</span>
+                    </td>
+                    <td style="padding: 10px 12px; font-size: 0.82rem;">
+                        <span style="font-weight: 700; color: #1e293b; display: block;">${escapeHtml(o.name || '-')}</span>
+                        <span style="color: #64748b; font-size: 0.76rem;"><i class="fa-solid fa-phone" style="font-size: 0.7rem;"></i> ${escapeHtml(o.phone || '-')}</span>
+                        ${o.area ? `<span style="display: block; color: #0288d1; font-size: 0.74rem;"><i class="fa-solid fa-location-dot" style="font-size: 0.7rem;"></i> ${escapeHtml(o.area)}</span>` : ''}
+                    </td>
+                    <td style="padding: 10px 12px; min-width: 240px;">
+                        ${itemsHtml}
+                    </td>
+                    <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
+                        ${totalsBreakdownHtml}
+                    </td>
+                    <td style="padding: 10px 12px; text-align: center;">
+                        <span style="background: ${sc.bg}; color: ${sc.text}; padding: 3px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;">
+                            ${escapeHtml(o.status || 'pending')}
+                        </span>
+                    </td>
+                    <td style="padding: 10px 12px; font-size: 0.78rem; color: #475569; max-width: 200px;">
+                        ${comment ? `<div style="background: #fefce8; border: 1px solid #fef08a; padding: 4px 8px; border-radius: 6px; color: #854d0e; font-size: 0.76rem;"><i class="fa-regular fa-comment-dots"></i> ${escapeHtml(comment)}</div>` : '<span style="color: #cbd5e1;">-</span>'}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        listContainer.innerHTML = html;
+    });
+}
+
 function viewWeekDetails(weekKey) {
     window.currentOpenWeekKey = weekKey;
     const container = document.getElementById('weekDetailsContainer');
@@ -6113,6 +6596,16 @@ function viewWeekDetails(weekKey) {
         exportBtn.onclick = () => exportWeekReportToExcel(weekKey);
     }
 
+    const exportOrdersBtn = document.getElementById('btnExportWeekOrdersExcel');
+    if (exportOrdersBtn) {
+        exportOrdersBtn.onclick = () => exportWeekCustomerOrdersExcel(weekKey);
+    }
+
+    const exportOrdersBtn2 = document.getElementById('btnExportWeekOrdersExcel2');
+    if (exportOrdersBtn2) {
+        exportOrdersBtn2.onclick = () => exportWeekCustomerOrdersExcel(weekKey);
+    }
+
     const addOtherBtn = document.getElementById('btnWeekAddOtherItem');
     if (addOtherBtn) {
         addOtherBtn.onclick = () => addWeekOtherProductItem(weekKey);
@@ -6126,9 +6619,12 @@ function viewWeekDetails(weekKey) {
     // Render Operational Expenses for this week
     renderWeekOperationalExpensesList(weekKey);
 
+    // Render Customer Orders list for this week
+    renderWeekCustomerOrdersList(weekKey);
+
     tbody.innerHTML = '';
 
-    const pKeys = Object.keys(wData.products);
+    const pKeys = Object.keys(wData.products || {});
     if (pKeys.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -6138,9 +6634,21 @@ function viewWeekDetails(weekKey) {
             </tr>
         `;
     } else {
+        const catalogKeys = [];
+        const otherKeys = [];
+
         pKeys.forEach(pId => {
             const pObj = wData.products[pId];
             const isOther = pObj.isOther || (typeof pId === 'string' && pId.startsWith('other_')) || !products.some(p => p.id === parseInt(pId));
+            if (isOther) {
+                otherKeys.push(pId);
+            } else {
+                catalogKeys.push(pId);
+            }
+        });
+
+        const renderRow = (pId, isOther) => {
+            const pObj = wData.products[pId];
             const prod = !isOther ? products.find(p => p.id === parseInt(pId)) : null;
 
             let displayName = pObj.name;
@@ -6153,14 +6661,14 @@ function viewWeekDetails(weekKey) {
 
             const tr = document.createElement('tr');
 
-            const displayTotalSales = (Math.round(pObj.totalSales * 100) / 100).toFixed(2);
-            const displayTotalExpense = (Math.round(pObj.totalExpense * 100) / 100).toFixed(2);
-            const netProfit = Math.round((pObj.totalSales - pObj.totalExpense) * 100) / 100;
+            const displayTotalSales = (Math.round((pObj.totalSales || 0) * 100) / 100).toFixed(2);
+            const displayTotalExpense = (Math.round((pObj.totalExpense || 0) * 100) / 100).toFixed(2);
+            const netProfit = Math.round(((pObj.totalSales || 0) - (pObj.totalExpense || 0)) * 100) / 100;
             const profitStyle = netProfit >= 0 ? 'color: var(--primary-color); font-weight: 600;' : 'color: #d32f2f; font-weight: 600;';
             const profitLabel = netProfit >= 0 ? `₹${netProfit.toFixed(2)}` : `-₹${Math.abs(netProfit).toFixed(2)}`;
-            const formattedQty = (Math.round(pObj.qty * 100) / 100).toFixed(2);
-            const curSell = pObj.pricePerUnit !== undefined ? (Math.round(pObj.pricePerUnit * 100) / 100).toFixed(2) : (Math.round(pObj.price * 100) / 100).toFixed(2);
-            const curCost = (Math.round(pObj.costPrice * 100) / 100).toFixed(2);
+            const formattedQty = (Math.round((pObj.qty || 0) * 100) / 100).toFixed(2);
+            const curSell = pObj.pricePerUnit !== undefined ? (Math.round(pObj.pricePerUnit * 100) / 100).toFixed(2) : (Math.round((pObj.price || 0) * 100) / 100).toFixed(2);
+            const curCost = (Math.round((pObj.costPrice || 0) * 100) / 100).toFixed(2);
 
             let col1Html = '';
             let col2Html = '';
@@ -6209,15 +6717,37 @@ function viewWeekDetails(weekKey) {
                 </td>
             `;
             tbody.appendChild(tr);
-        });
+        };
+
+        if (catalogKeys.length > 0) {
+            const catHeaderTr = document.createElement('tr');
+            catHeaderTr.innerHTML = `
+                <td colspan="8" style="background: #f8fafc; font-weight: 700; color: #334155; padding: 10px 14px; border-left: 4px solid #475569; font-size: 0.88rem;">
+                    <i class="fa-solid fa-basket-shopping" style="color: #475569; margin-right: 6px;"></i> Standard Catalog Products (${catalogKeys.length})
+                </td>
+            `;
+            tbody.appendChild(catHeaderTr);
+            catalogKeys.forEach(pId => renderRow(pId, false));
+        }
+
+        if (otherKeys.length > 0) {
+            const otherHeaderTr = document.createElement('tr');
+            otherHeaderTr.innerHTML = `
+                <td colspan="8" style="background: #f4fbf6; font-weight: 700; color: #1b5e20; padding: 10px 14px; border-left: 4px solid #2e7d32; font-size: 0.88rem;">
+                    <i class="fa-solid fa-tag" style="color: #2e7d32; margin-right: 6px;"></i> Other Products & Custom Items (${otherKeys.length})
+                </td>
+            `;
+            tbody.appendChild(otherHeaderTr);
+            otherKeys.forEach(pId => renderRow(pId, true));
+        }
     }
 
     // Calculate and render weekly summary cards (including operational expenses)
     let pSales = 0;
     let pExpenses = 0;
-    Object.values(wData.products).forEach(prod => {
-        pSales += prod.totalSales;
-        pExpenses += prod.totalExpense;
+    Object.values(wData.products || {}).forEach(prod => {
+        pSales += (prod.totalSales || 0);
+        pExpenses += (prod.totalExpense || 0);
     });
     pSales = Math.round(pSales * 100) / 100;
     pExpenses = Math.round(pExpenses * 100) / 100;
