@@ -501,6 +501,14 @@
                 <div id="couponMessage" class="coupon-msg"></div>
             </div>
 
+            <!-- Customer Comment or Add-ons -->
+            <div class="cart-comment-section" id="cartCommentSection">
+                <label for="cartCustomerComment" id="lblCartComment">
+                    <i class="fa-solid fa-comment-dots"></i> Comment or Add-ons (Optional)
+                </label>
+                <textarea id="cartCustomerComment" placeholder="Comment or Add-ons (e.g. Please call before delivery, add extra curry leaves / coriander...)" rows="2" maxlength="300"></textarea>
+            </div>
+
             <!-- Totals Breakdown -->
             <div class="cart-totals-breakdown" id="cartTotalsBreakdown">
                 <div class="cart-subtotal-row" id="cartSubtotalRow" style="display: none;">
@@ -871,6 +879,7 @@
                             <table class="admin-products-table">
                                 <thead>
                                     <tr>
+                                        <th>Order ID</th>
                                         <th>Date & Time</th>
                                         <th>Customer</th>
                                         <th>Items Ordered</th>
@@ -1008,75 +1017,174 @@
                 <!-- Company Statistics Section -->
                 <div id="adminCompanyStatsSection" style="display: none;">
 
+                    <!-- Top Action Bar with Global Workbook Export -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; border-bottom: 2px solid #eef3f0; padding-bottom: 15px;">
+                        <div>
+                            <h3 style="font-size: 1.35rem; color: var(--primary-color); margin: 0; display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-chart-line"></i> <span id="lblCompanyStatsHeading">Company Accounting & Performance Analytics</span>
+                            </h3>
+                            <p style="margin: 4px 0 0 0; font-size: 0.88rem; color: var(--text-light);">Real-time revenue, expense tracking, and weekly performance insights.</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" onclick="exportCompanyWorkbookExcel()" style="border-radius: 20px; padding: 9px 18px; font-size: 0.88rem; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-file-excel"></i> <span id="lblExportCompanyWorkbook">Export Excel Workbook (.xlsx)</span>
+                            </button>
+                        </div>
+                    </div>
 
-                    <!-- Sub-Section 1: Analytics -->
-                    <div id="statsAnalyticsSubSection">
-                        <div class="admin-stats-row">
-                            <div class="admin-stat-card">
-                                <div class="stat-icon" style="color: var(--primary-color); background: rgba(46,125,50,0.1);"><i class="fa-solid fa-money-bill-trend-up"></i></div>
-                                <div class="stat-details">
-                                    <span class="stat-label">All-Time Gross Sales</span>
-                                    <h4 id="statsAllTimeSales">₹0</h4>
-                                </div>
+                    <!-- All-Time High-Level Metric Cards -->
+                    <div class="admin-stats-row">
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: var(--primary-color); background: rgba(46,125,50,0.1);"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-label">All-Time Gross Sales</span>
+                                <h4 id="statsAllTimeSales">₹0</h4>
                             </div>
-                            <div class="admin-stat-card">
-                                <div class="stat-icon" style="color: #d32f2f; background: rgba(211,47,47,0.1);"><i class="fa-solid fa-receipt"></i></div>
-                                <div class="stat-details">
-                                    <span class="stat-label">All-Time Expenses</span>
-                                    <h4 id="statsAllTimeExpense">₹0</h4>
-                                </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: #d32f2f; background: rgba(211,47,47,0.1);"><i class="fa-solid fa-receipt"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-label">All-Time Expenses</span>
+                                <h4 id="statsAllTimeExpense">₹0</h4>
                             </div>
-                            <div class="admin-stat-card">
-                                <div class="stat-icon" style="color: #0288d1; background: rgba(2,136,209,0.1);"><i class="fa-solid fa-coins"></i></div>
-                                <div class="stat-details">
-                                    <span class="stat-label">All-Time Profit / Loss</span>
-                                    <h4 id="statsAllTimeProfit">₹0</h4>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="stat-icon" style="color: #0288d1; background: rgba(2,136,209,0.1);"><i class="fa-solid fa-coins"></i></div>
+                            <div class="stat-details">
+                                <span class="stat-label">All-Time Profit / Loss</span>
+                                <h4 id="statsAllTimeProfit">₹0</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dedicated Visualization for 'Week-Wise Sales & Profit Breakdown' -->
+                    <div class="admin-stat-card" style="flex-direction: column; align-items: stretch; padding: 25px; background: white; margin-top: 25px; border: 1.5px solid #e2e8f0; border-top: 4px solid #2e7d32; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #f0f4f1; padding-bottom: 12px;">
+                            <h4 style="font-size: 1.18rem; color: var(--primary-color); margin: 0; display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-chart-column"></i> <span id="lblWeekWiseChartTitle">Week-Wise Sales & Profit Trend Visualization</span>
+                            </h4>
+                            <div style="display: flex; gap: 20px; font-size: 0.82rem; font-weight: 600; flex-wrap: wrap;">
+                                <span style="display: flex; align-items: center; gap: 6px;"><span style="display: inline-block; width: 12px; height: 12px; background: #2e7d32; border-radius: 3px;"></span> Gross Sales (₹)</span>
+                                <span style="display: flex; align-items: center; gap: 6px;"><span style="display: inline-block; width: 12px; height: 12px; background: #d32f2f; border-radius: 3px;"></span> Total Expenses (₹)</span>
+                                <span style="display: flex; align-items: center; gap: 6px;"><span style="display: inline-block; width: 8px; height: 8px; background: #0288d1; border-radius: 50%;"></span> Net Profit / Loss</span>
+                            </div>
+                        </div>
+
+                        <div id="statsWeekWiseVisualizationChart" style="min-height: 260px; overflow-x: auto; padding: 10px 0;">
+                            <!-- Rendered dynamically via JS -->
+                        </div>
+
+                        <!-- Weekly Summary Quick Insights Strip -->
+                        <div id="statsWeekInsightsStrip" style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding-top: 15px; border-top: 1px dashed #e0e0e0;">
+                            <!-- Dynamically populated with Avg Sales/Wk, Avg Profit/Wk, Highest Profit Week, Active Margin -->
+                        </div>
+                    </div>
+
+                    <!-- Visual Section Divider -->
+                    <div class="section-divider-bar">
+                        <span class="section-divider-badge"><i class="fa-solid fa-table-list" style="color: var(--primary-color);"></i> Weekly Accounting Breakdown</span>
+                    </div>
+
+                    <!-- Week-wise statistics table box -->
+                    <div style="background: white; border: 1.5px solid #e2e8f0; border-top: 4px solid #0288d1; border-radius: 16px; padding: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                            <h4 style="font-size: 1.2rem; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-calendar-days" style="color: #0288d1;"></i> <span>Week-Wise Sales & Profit Breakdown</span>
+                            </h4>
+                            <span style="font-size: 0.85rem; color: var(--text-light);">Click "Details" on any week to view & adjust product-level prices & breakdown</span>
+                        </div>
+                        <div class="admin-table-container">
+                            <table class="admin-products-table">
+                                <thead>
+                                    <tr>
+                                        <th>Week (Mon - Sun)</th>
+                                        <th>Orders</th>
+                                        <th>Gross Sales</th>
+                                        <th>Expenses</th>
+                                        <th>Net Profit / Loss</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statsWeekBreakdownList">
+                                    <!-- Injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Week details modal / container (shows when clicking details of a week) -->
+                    <div id="weekDetailsContainer" style="display: none; margin-top: 30px; background: #fafcfb; padding: 25px; border-radius: 18px; border: 2px solid #bbf7d0; box-shadow: 0 8px 30px rgba(0,0,0,0.06);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; flex-wrap: wrap; gap: 12px; background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                            <div>
+                                <h4 style="font-size: 1.28rem; color: var(--primary-color); margin: 0; display: flex; align-items: center; gap: 10px;" id="weekDetailsTitle">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i> Product Sales & Profits Breakdown
+                                </h4>
+                                <p style="margin: 4px 0 0 0; font-size: 0.84rem; color: #64748b;">Selling & Cost prices accept up to 2 decimal places. Click the checkmark to recalculate.</p>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button class="btn btn-primary" id="btnExportWeekExcel" style="padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; display: flex; align-items: center; gap: 8px; background: #2e7d32; border-color: #2e7d32; font-weight: 600;">
+                                    <i class="fa-solid fa-file-excel"></i> Download Week Excel (.xlsx)
+                                </button>
+                                <button class="btn btn-secondary" onclick="closeWeekDetails()" style="padding: 8px 16px; font-size: 0.84rem; border-radius: 10px; font-weight: 600;">Close Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Section 1: Add Other / Custom Item to this Week Breakdown (Emerald Theme) -->
+                        <div class="week-section-card week-theme-custom-item" id="weekAddOtherItemCard">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="font-weight: 700; font-size: 0.96rem; color: #1b5e20; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-cart-plus" style="color: #2e7d32;"></i> 1. Add Other / Custom Item to this Week Breakdown
+                                </span>
+                                <span id="weekNewOtherProfitBadge" style="font-size: 0.82rem; font-weight: 700; color: #2e7d32; background: white; padding: 4px 10px; border-radius: 8px; border: 1px solid #c8e6c9; display: none;">
+                                    Profit: ₹0.00
+                                </span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 1.2fr 1.2fr auto; gap: 10px; align-items: center;">
+                                <div>
+                                    <input type="text" id="weekNewOtherName" placeholder="Other Item Name (e.g. Organic Honey / Mangoes)" style="width: 100%; padding: 8px 12px; border: 1.5px solid #a3d9a5; border-radius: 8px; font-size: 0.88rem; background: white; font-weight: 600;">
+                                </div>
+                                <div>
+                                    <input type="number" id="weekNewOtherQty" placeholder="Qty (e.g. 2)" min="0.01" step="0.01" style="width: 100%; padding: 8px 10px; border: 1.5px solid #a3d9a5; border-radius: 8px; font-size: 0.88rem; background: white;" oninput="updateNewOtherProfitPreview()">
+                                </div>
+                                <div>
+                                    <input type="number" id="weekNewOtherSell" placeholder="Sell Price (₹)" min="0" step="0.01" style="width: 100%; padding: 8px 10px; border: 1.5px solid #a3d9a5; border-radius: 8px; font-size: 0.88rem; background: white;" oninput="updateNewOtherProfitPreview()">
+                                </div>
+                                <div>
+                                    <input type="number" id="weekNewOtherCost" placeholder="Cost Price (₹)" min="0" step="0.01" style="width: 100%; padding: 8px 10px; border: 1.5px solid #a3d9a5; border-radius: 8px; font-size: 0.88rem; background: white;" oninput="updateNewOtherProfitPreview()">
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary" id="btnWeekAddOtherItem" style="padding: 8px 16px; font-size: 0.86rem; border-radius: 8px; white-space: nowrap; background: #2e7d32; border-color: #2e7d32; font-weight: 600;">
+                                        <i class="fa-solid fa-plus"></i> Add to Week
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Week-wise statistics table -->
-                        <div style="margin-top: 30px;">
-                            <h4 style="font-size: 1.2rem; color: var(--primary-color); margin-bottom: 15px; text-align: left;"><i class="fa-solid fa-calendar-days"></i> Week-Wise Sales & Profit Breakdown</h4>
-                            <div class="admin-table-container">
-                                <table class="admin-products-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Week (Mon - Sun)</th>
-                                            <th>Orders</th>
-                                            <th>Gross Sales</th>
-                                            <th>Expenses</th>
-                                            <th>Net Profit / Loss</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="statsWeekBreakdownList">
-                                        <!-- Injected via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
+                        <!-- Section Divider -->
+                        <div class="section-divider-bar">
+                            <span class="section-divider-badge"><i class="fa-solid fa-basket-shopping" style="color: #475569;"></i> 2. Product Sales & Cost Breakdown</span>
                         </div>
 
-                        <!-- Week details modal / container (shows when clicking details of a week) -->
-                        <div id="weekDetailsContainer" style="display: none; margin-top: 30px; background: #fafcfb; padding: 25px; border-radius: 16px; border: 1px solid #eef3f0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                                <h4 style="font-size: 1.2rem; color: var(--primary-color); margin: 0;" id="weekDetailsTitle">Week Details</h4>
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="btn btn-primary" id="btnExportWeekExcel" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 12px;"><i class="fa-solid fa-file-excel"></i> Download Excel</button>
-                                    <button class="btn btn-secondary" onclick="closeWeekDetails()" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 12px;">Close Details</button>
-                                </div>
+                        <!-- Section 2: Products Breakdown Table Card (Slate/Clean White Theme) -->
+                        <div class="week-section-card week-theme-products-table">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="font-weight: 700; font-size: 0.96rem; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-list-check" style="color: #475569;"></i> Weekly Products & Custom Items Financial Table
+                                </span>
+                                <span style="font-size: 0.78rem; color: #64748b;">(Values can be edited and saved per item)</span>
                             </div>
-                            <div class="admin-table-container">
+                            <div class="admin-table-container" style="margin-top: 5px;">
                                 <table class="admin-products-table" style="background: white;">
                                     <thead>
                                         <tr>
-                                            <th>Product Name</th>
+                                            <th>Product / Item Name</th>
                                             <th>Quantity Sold</th>
-                                            <th>Selling Price</th>
-                                            <th>Cost Price (Expense)</th>
+                                            <th>Selling Price (₹)</th>
+                                            <th>Cost Price (Expense) (₹)</th>
                                             <th>Subtotal Sales</th>
                                             <th>Subtotal Expenses</th>
                                             <th>Product Profit/Loss</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="weekDetailsProductsList">
@@ -1084,12 +1192,89 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div id="weekDetailsSummary" style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #eee;">
+                        </div>
+
+                        <!-- Section Divider -->
+                        <div class="section-divider-bar">
+                            <span class="section-divider-badge"><i class="fa-solid fa-truck-ramp-box" style="color: #0288d1;"></i> 3. Operational Expenses (Transport, Fuel, Misc)</span>
+                        </div>
+
+                        <!-- Section 3: Weekly Operational Expenses Section (Sky/Blue Theme) -->
+                        <div class="week-section-card week-theme-op-expenses" id="weekOpExpensesCard">
+                            <div class="week-op-expenses-header">
+                                <div>
+                                    <h4 style="font-size: 1.05rem; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fa-solid fa-gas-pump" style="color: #0288d1;"></i> Operational Overhead & Transport Expenses
+                                    </h4>
+                                    <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: #475569;">Log transport, fuel, packaging, and misc expenses for this week. Deducts directly from Net Profit.</p>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span id="weekOpExpensesTotalBadge" style="background: #fee2e2; color: #b91c1c; font-weight: 700; padding: 5px 14px; border-radius: 20px; font-size: 0.88rem; border: 1.5px solid #fca5a5;">
+                                        Total Expenses: ₹0.00
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Category Preset Quick Chips -->
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;">
+                                <span style="font-size: 0.78rem; font-weight: 700; color: #334155;">Quick Presets:</span>
+                                <span class="expense-preset-chip" onclick="setExpensePreset('Transport / Delivery Van Fare', 'transport')"><i class="fa-solid fa-van-shuttle"></i> 🚗 Transport</span>
+                                <span class="expense-preset-chip" onclick="setExpensePreset('Diesel / Petrol (Fuel)', 'fuel')"><i class="fa-solid fa-gas-pump"></i> ⛽ Fuel</span>
+                                <span class="expense-preset-chip" onclick="setExpensePreset('Packaging Boxes & Covers', 'packaging')"><i class="fa-solid fa-box-open"></i> 📦 Packaging</span>
+                                <span class="expense-preset-chip" onclick="setExpensePreset('Farm Labor / Loading', 'labor')"><i class="fa-solid fa-person-digging"></i> 👷 Labor</span>
+                                <span class="expense-preset-chip" onclick="setExpensePreset('Highway Tolls / Parking', 'tolls')"><i class="fa-solid fa-road"></i> 🛣️ Tolls</span>
+                                <span class="expense-preset-chip" onclick="setExpensePreset('Miscellaneous Expense', 'misc')"><i class="fa-solid fa-receipt"></i> 📝 Misc</span>
+                            </div>
+
+                            <!-- New Expense Input Row -->
+                            <div style="display: grid; grid-template-columns: 2.2fr 1.2fr 1.2fr auto; gap: 10px; align-items: center; background: white; padding: 12px 14px; border-radius: 10px; margin-bottom: 15px; border: 1.5px solid #cbd5e1;">
+                                <div>
+                                    <input type="text" id="weekNewExpenseTitle" placeholder="Expense Title / Description (e.g. Delivery Van Fuel)" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; background: #f8fafc; font-weight: 600;">
+                                </div>
+                                <div>
+                                    <select id="weekNewExpenseCat" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; background: #f8fafc; font-weight: 500;">
+                                        <option value="transport">🚗 Transport</option>
+                                        <option value="fuel" selected>⛽ Fuel / Diesel</option>
+                                        <option value="packaging">📦 Packaging</option>
+                                        <option value="labor">👷 Labor / Loading</option>
+                                        <option value="tolls">🛣️ Tolls & Parking</option>
+                                        <option value="misc">📝 Miscellaneous</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <input type="number" id="weekNewExpenseAmount" placeholder="Amount (₹)" min="0.01" step="0.01" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; background: #f8fafc; font-weight: 700; color: #b91c1c;">
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary" id="btnWeekAddExpense" style="padding: 8px 16px; font-size: 0.86rem; border-radius: 8px; white-space: nowrap; background: #0288d1; border-color: #0288d1; font-weight: 600;">
+                                        <i class="fa-solid fa-plus"></i> Add Expense
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- List of Logged Expenses for Selected Week -->
+                            <div id="weekOpExpensesList">
+                                <!-- Populated dynamically via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Section Divider -->
+                        <div class="section-divider-bar">
+                            <span class="section-divider-badge"><i class="fa-solid fa-calculator" style="color: #78716c;"></i> 4. Weekly Financial Reconciliation</span>
+                        </div>
+
+                        <!-- Section 4: Weekly Financial Summary Strip (Themed Card) -->
+                        <div class="week-section-card week-theme-financial-summary">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span style="font-weight: 700; font-size: 0.96rem; color: #292524; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-scale-balanced" style="color: #78716c;"></i> Weekly Net Profit & Cost Summary
+                                </span>
+                                <span style="font-size: 0.78rem; color: #78716c;">Final Week Totals (Sales + Delivery - Costs - Ops - Discounts)</span>
+                            </div>
+                            <div id="weekDetailsSummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px;">
                                 <!-- Injected via JS -->
                             </div>
                         </div>
                     </div>
-
 
                 </div>
             </main>
@@ -1270,6 +1455,21 @@
                         <!-- Populated dynamically via JS -->
                     </div>
                 </div>
+
+                <!-- Other / Custom Items Section in Edit Order -->
+                <div style="margin-top: 20px; text-align: left; background: #fbfdfc; padding: 16px; border: 1.5px dashed #a5d6a7; border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <label style="font-weight: 700; font-size: 0.92rem; color: var(--primary-color); margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-circle-plus"></i> Other / Custom Items (Add-ons)
+                        </label>
+                        <button type="button" class="btn btn-secondary" onclick="addCustomOrderItemRow()" style="padding: 5px 12px; font-size: 0.8rem; border-radius: 12px; border: 1px solid var(--primary-color); color: var(--primary-color); background: white; cursor: pointer;">
+                            <i class="fa-solid fa-plus"></i> Add Other Item
+                        </button>
+                    </div>
+                    <div id="orderCustomItemsList" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Dynamically populated via JS -->
+                    </div>
+                </div>
                 
                 <div class="product-form-buttons" style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 25px;">
                     <button type="button" class="btn btn-secondary" onclick="closeOrderFormModal()" style="border: 2px solid #888; color: #555; border-radius: 20px;">Cancel</button>
@@ -1284,8 +1484,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <!-- SheetJS Excel Library -->
+    <script src="xlsx.full.min.js"></script>
+
     <!-- Custom Script -->
-    <script src="script.js?v=4.1"></script>
+    <script src="script.js?v=4.6"></script>
 
     <!-- Register Service Worker -->
     <script>

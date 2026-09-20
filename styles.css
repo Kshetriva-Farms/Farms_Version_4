@@ -3233,4 +3233,463 @@ footer {
 
 .stats-sub-tabs button {
   transition: var(--transition);
-}
+}
+
+/* ==========================================================================
+   Company Statistics Accounting: Purchase & Sales Styles
+   ========================================================================== */
+
+/* Cart Comments Section */
+.cart-comment-section {
+  padding: 10px 0;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  margin-top: 8px;
+}
+
+.cart-comment-section label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 5px;
+}
+
+.cart-comment-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #e0e0e0;
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+  transition: var(--transition);
+}
+
+.cart-comment-section textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+/* Accounting Sub-Tabs */
+.stats-subnav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.stats-subtabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stats-subtab-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1.5px solid #e0e0e0;
+  background: white;
+  color: #555;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-subtab-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(46, 125, 50, 0.04);
+}
+
+.stats-subtab-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
+}
+
+/* Week Selector Bar */
+.stats-week-selector-bar {
+  background: #f4f9f5;
+  border: 1px solid #dceede;
+  border-radius: 14px;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+/* Visualizations Styles */
+.chart-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.chart-bar-track {
+  width: 100%;
+  height: 18px;
+  background: #eee;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.chart-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-trend-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 220px;
+  padding: 20px 10px 10px 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.chart-trend-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+}
+
+.chart-trend-bar {
+  width: 14px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.6s ease;
+  min-height: 2px;
+}
+
+.chart-trend-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Custom / Other Order Items Styling */
+.custom-order-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: var(--transition);
+}
+
+.custom-order-item-row:hover {
+  border-color: #a5d6a7;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.custom-order-item-row input,
+.custom-order-item-row select {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 0.86rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.custom-order-item-row input:focus,
+.custom-order-item-row select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.btn-remove-custom-item {
+  background: transparent;
+  color: #d32f2f;
+  border: 1px solid #ffcdd2;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-remove-custom-item:hover {
+  background: #ffebee;
+  border-color: #d32f2f;
+}
+
+.other-item-badge {
+  display: inline-block;
+  background: #e0f2f1;
+  color: #00796b;
+  border: 1px solid #b2dfdb;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Enhanced Thematic Section Containers & Dividers */
+.section-divider-bar {
+  display: flex;
+  align-items: center;
+  margin: 28px 0 20px 0;
+  position: relative;
+}
+
+.section-divider-bar::before {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, #cbd5e1, #94a3b8);
+}
+
+.section-divider-bar::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, #94a3b8, #cbd5e1, transparent);
+}
+
+.section-divider-badge {
+  padding: 5px 14px;
+  background: white;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin: 0 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Week Breakdown Thematic Sections */
+.week-section-card {
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 22px;
+  transition: box-shadow 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.week-section-card:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Theme 1: Add Custom / Other Item Card (Emerald Theme) */
+.week-theme-custom-item {
+  background: #f4fbf6;
+  border: 1.5px solid #a3d9a5;
+  border-left: 5px solid #2e7d32;
+}
+
+/* Theme 2: Products Breakdown Table Card (Slate/Clean White Theme) */
+.week-theme-products-table {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-left: 5px solid #475569;
+}
+
+/* Theme 3: Operational Overhead Expenses Card (Sky/Blue Theme) */
+.week-theme-op-expenses {
+  background: #f0f7fc;
+  border: 1.5px solid #b9dcf4;
+  border-left: 5px solid #0288d1;
+}
+
+/* Theme 4: Financial Summary Strip Card (Warm Amber/Stone Theme) */
+.week-theme-financial-summary {
+  background: #fbfbf9;
+  border: 1.5px solid #e7e5e4;
+  border-left: 5px solid #78716c;
+}
+
+.week-add-item-card {
+  background: #f4fbf5;
+  border: 1.5px solid #a3d9a5;
+  border-left: 5px solid #2e7d32;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+}
+
+/* Weekly Operational Expenses Styling (Transport, Fuel, Misc) */
+.week-op-expenses-card {
+  background: #f0f7fc;
+  border: 1.5px solid #b9dcf4;
+  border-left: 5px solid #0288d1;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-top: 22px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.week-op-expenses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #d0e4f5;
+  padding-bottom: 10px;
+}
+
+.expense-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: white;
+  color: #1e3a8a;
+  border: 1px solid #bfdbfe;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.expense-preset-chip:hover {
+  background: #0288d1;
+  color: white;
+  border-color: #0288d1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(2, 136, 209, 0.25);
+}
+
+.week-op-expense-row {
+  display: grid;
+  grid-template-columns: 2.2fr 1.2fr 1.2fr auto;
+  gap: 10px;
+  align-items: center;
+  background: white;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  margin-bottom: 8px;
+  transition: var(--transition);
+}
+
+.week-op-expense-row:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.week-op-expense-row input,
+.week-op-expense-row select {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 0.88rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.week-op-expense-row input:focus,
+.week-op-expense-row select:focus {
+  border-color: #0288d1;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(2, 136, 209, 0.15);
+}
+
+/* Metric Summary Mini Cards */
+.week-summary-card-metric {
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.week-summary-card-metric:hover {
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .custom-order-item-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .week-op-expense-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* Week Separator Row in Order Manager & Logistics Console */
+.logistics-week-separator td {
+  padding: 10px 16px !important;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+
+.logistics-week-separator.present-week td {
+  background: linear-gradient(90deg, #e8f5e9 0%, #f4fbf5 100%) !important;
+  border-top: 2.5px solid #2e7d32 !important;
+  border-bottom: 1.5px solid #c8e6c9 !important;
+}
+
+.logistics-week-separator.past-week td {
+  background: linear-gradient(90deg, #f1f5f9 0%, #f8fafc 100%) !important;
+  border-top: 2.5px solid #64748b !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
+}
+
+.logistics-week-separator:hover td {
+  filter: brightness(0.98);
+}
+
+
+
+

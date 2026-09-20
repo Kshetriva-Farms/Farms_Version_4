@@ -506,17 +506,50 @@ For queries, orders, or partner programs:
 - **Updated Redirect Target:** Changed all active WhatsApp order and general chat redirect endpoints to use the new number `+91 63046 34987` (`916304634987`) across `script.js` checkout routines, fallback links, and floating widget URLs.
 - **Displayed Contact Info:** Added `+91 63046 34987 (WhatsApp)` as an additional phone number in the contact details in the website footer (`index.html` and `blog.html`), sidebar (`blog.html`), and project documentation to keep user-facing contact information aligned.
 
-### 🗓️ August 11, 2026
+### 🗓️ September 2026
 
-#### 1. 🛡️ Database Protection & Bilingual Schema Rules (Weekly Reset Resolution)
-- **Bilingual Validation Rules**: Configured [firestore.rules](file:///d:/Kshetriva_farms/Farms_Version_4/firestore.rules) to validate that all creations and updates to the `products` collection contain both English (`name_en`) and Telugu (`name_te`) string attributes.
-- **Root Cause Fix**: This blocks legacy clients (running cached scripts from before version 4) from executing their un-translated default catalog seeds (`seedDatabase()`) and overwriting edited prices.
-- **Storefront Localhost Warnings**: Added explicit alert dialogs inside `script.js` database operations to warn admins when they perform catalog updates/deletes in sandbox mode on `localhost:8000`.
+#### 1. 🚚 Weekly Operational Expenses Subsystem (Transport, Fuel, Packaging, Overhead)
+- **Dedicated Operational Overhead Section**: Added a specialized horizontal section inside every weekly report within **Product Sales & Profits Breakdown** to log and manage operational overhead expenses.
+- **Quick Category Presets**: Introduced one-click category chips for fast data entry:
+  - 🚗 **Transport**: Delivery van hire, vehicle freight, logistics fares.
+  - ⛽ **Fuel**: Diesel, petrol, delivery vehicle refueling costs.
+  - 📦 **Packaging**: Cardboard boxes, protective wraps, covers, bags.
+  - 👷 **Labor**: Farm loading/unloading, packing assistance wages.
+  - 🛣️ **Tolls**: Highway toll gates, parking charges.
+  - 📝 **Misc**: General farm supplies and miscellaneous operating costs.
+- **Live Net Profit Reconciliation**: Operational expenses are stored per week (`localStorage` and Firestore `/config/week_expenses`) and deducted from gross sales alongside product costs (COGS) and discounts:
+  $$\text{Weekly Net Profit} = (\text{Gross Sales} + \text{Delivery Charges}) - (\text{Product COGS} + \text{Operational Expenses} + \text{Discounts})$$
+- **Synchronous Real-Time Updates**: Adding, updating, or removing an operational expense immediately triggers live recalculations in the open week details summary, company statistics, and multi-week trend visualizations.
 
-#### 2. ⚡ Code Optimizations, Branding Consistency & PWA Offline Caching (Version 4.8.2)
-- **Localizing Remote Catalog Assets**: Modified product details configuration in `script.js` to serve the Ridge Gourd image from the local path `images/Ridge_Gourd.webp` instead of an external GitHub raw user content URL. This prevents visual asset rendering failures when running in offline mode.
-- **Branding & Payload Standardization**: Replaced references to the large `images/logo_nav_new.png` (612 KB) with the optimized WebP format `images/logo_nav.webp` (233 KB) across navigation header, body, and footer containers in `blog.html`. This ensures visual alignment with `index.html` and saves ~380 KB of payload on every blog page hit.
-- **Service Worker Offline Cache Completeness**: Incremented the service worker cache version to `kshetriva-farms-cache-v21` inside `sw.js` and added all landing page images (farmers, nav logo, field views) to `ASSETS_TO_CACHE` to ensure a completely functional offline experience.
-- **Cache-Busting Integration**: Bumped the custom script reference version inside `index.html` to `script.js?v=4.1` to trigger immediate update propagation.
+#### 2. 📊 Interactive 'Week-Wise Sales & Profit Trend Visualization' Synchronization
+- **Live Calculation Alignment**: Connected the **Week-Wise Sales & Profit Trend Visualization** directly with the weekly accounting engine so that:
+  - The **Total Expenses bar** factors in both product costs (COGS) and operational overhead (transport, fuel, packaging).
+  - The **Floating Net Profit Badge** (`+₹...` / `-₹...`) displays the accurate final net profit after deducting operational overhead.
+  - Detailed tooltips display granular expense breakdowns (e.g. `Total Expenses: ₹850.00 (Products: ₹500.00 + Ops: ₹350.00)`).
+  - The **Weekly Quick Insights Strip** dynamically updates the *Avg Weekly Net Profit*, *Avg Net Margin*, and *Top Performing Week* based on final net profit.
+
+#### 3. 🎨 Distinct Thematic Section Containers & Section Dividers
+- **Visual Section Dividers**: Added stylish divider bars with center pill badges (e.g. `Weekly Accounting Breakdown`, `1. Add Other / Custom Item`, `2. Product Sales & Cost Breakdown`, `3. Operational Expenses`, `4. Weekly Financial Reconciliation`) to clearly demarcate each section of the analytics dashboard.
+- **Themed Subsection Cards**:
+  - **1. Add Custom / Other Item Card**: Soft Emerald theme (`.week-theme-custom-item`) with green borders, text name, quantity, selling price, cost price, and live profit/loss badge preview.
+  - **2. Product Breakdown Table Card**: Crisp Slate/White theme (`.week-theme-products-table`) with structured columns and inline editable prices.
+  - **3. Operational Expenses Card**: Sky/Blue theme (`.week-theme-op-expenses`) with preset chips, horizontal input bar, and dynamic expense item rows.
+  - **4. Weekly Financial Summary Strip**: Multi-metric strip (`.week-theme-financial-summary`) featuring 6 color-coded mini cards:
+    1. 🟢 **Products Subtotal** (Green)
+    2. 🔴 **Product Cost (COGS)** (Rose)
+    3. 🔵 **Transport & Fuel Ops** (Blue / Red)
+    4. 🟠 **Total Discounts** (Orange / Red)
+    5. 🟣 **Delivery Charges** (Teal / Blue)
+    6. 🟢/🔴 **Weekly Net Profit / Loss** (Emerald / Crimson bold card)
+
+#### 4. 🏷️ Other / Custom Items in Manual Orders & Weekly Breakdowns
+- **Bidirectional Item Synchronization**: Added text name and quantity input fields for custom/other items in both the **Edit Order Details** (Manual Order Modal) and **Product Sales & Profits Breakdown** (Week Details).
+- **Two-Way Precision**: Custom items accept decimal quantities and unit prices up to 2 decimal places (`step="0.01"`), automatically recalculating order subtotals and week-level product profits.
+
+#### 5. 📑 Genuine Binary Multi-Sheet `.xlsx` Excel Export Engine
+- **SheetJS Integration**: Replaced legacy HTML `.xls` tables with native binary OpenXML **`.xlsx`** workbooks powered by SheetJS (`xlsx.full.min.js`), eliminating the Microsoft Excel format mismatch security warning:
+  - **Single-Week Report (`.xlsx`)**: Generates a 4-sheet workbook featuring `Product Breakdown`, `Operational Expenses`, `Financial Summary`, and `Customer Orders`.
+  - **All-Time Company Workbook (`.xlsx`)**: Generates a 4-sheet workbook featuring `Weekly Summary` (with ops expenses), `Operational Expenses Master Log`, `Product Catalog`, and `Customer Orders` (with Comments / Add-ons).
+
 
 

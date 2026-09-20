@@ -22,6 +22,17 @@ function trackGA4Event(eventName, eventParams = {}) {
     }
 }
 
+// XSS Sanitization Helper
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // ===== Phase 1: Quantity Option Templates =====
 const QTY_TEMPLATES = {
     regular: [
@@ -42,6 +53,7 @@ const QTY_TEMPLATES = {
 };
 
 function getQuantityOptions(product) {
+    if (!product) return [];
     if (product.quantityOptions && product.quantityOptions.length > 0) {
         return product.quantityOptions;
     }
@@ -51,6 +63,53 @@ function getQuantityOptions(product) {
         ...opt,
         price: opt.price || Math.round(base * opt.multiplier)
     }));
+}
+
+function findQuantityOption(product, optionStr, itemPrice) {
+    if (!product) return null;
+    const opts = getQuantityOptions(product);
+    if (!opts || opts.length === 0) return null;
+
+    if (optionStr !== undefined && optionStr !== null && typeof optionStr === 'string' && optionStr.trim() !== '') {
+        const rawStr = optionStr.trim();
+        const strLower = rawStr.toLowerCase();
+        const strNormalized = strLower
+            .replace(/\s+/g, '')
+            .replace(/_/g, '')
+            .replace(/కట్ట/g, 'katta')
+            .replace(/కిలో/g, 'kg')
+            .replace(/పీసులు|పీసెస్|పీస్/g, 'piece')
+            .replace(/pieces/g, 'piece')
+            .replace(/pcs/g, 'pc');
+
+        // 1. Direct value exact match (e.g. '4_katta', '1kg', '1_pc', '500g')
+        let match = opts.find(o => o.value === rawStr || o.value.toLowerCase() === strLower);
+        if (match) return match;
+
+        // 2. Direct label exact match (e.g. '4 Katta', '1 kg', '1 Piece', '500g')
+        match = opts.find(o => o.label === rawStr || o.label.toLowerCase() === strLower);
+        if (match) return match;
+
+        // 3. Normalized string match
+        match = opts.find(o => {
+            const optValNorm = o.value.toLowerCase().replace(/\s+/g, '').replace(/_/g, '').replace(/pieces/g, 'piece').replace(/pcs/g, 'pc');
+            const optLblNorm = o.label.toLowerCase().replace(/\s+/g, '').replace(/_/g, '').replace(/pieces/g, 'piece').replace(/pcs/g, 'pc');
+            return optValNorm === strNormalized || optLblNorm === strNormalized ||
+                   optLblNorm.includes(strNormalized) || strNormalized.includes(optLblNorm) ||
+                   optValNorm.includes(strNormalized) || strNormalized.includes(optValNorm);
+        });
+        if (match) return match;
+    }
+
+    // 4. Match by price if available
+    if (itemPrice !== undefined && itemPrice !== null && !isNaN(itemPrice) && Number(itemPrice) > 0) {
+        const numPrice = Number(itemPrice);
+        const matchByPrice = opts.find(o => o.price === numPrice);
+        if (matchByPrice) return matchByPrice;
+    }
+
+    // 5. Default fallback to first available option
+    return opts[0] || null;
 }
 
 // ===== Phase 1: Basket Tier Configuration =====
@@ -594,7 +653,17 @@ const translations = {
         successBtnSend: "Send on WhatsApp",
         successBtnChat: "Open WhatsApp Chat",
         successBtnClose: "Close",
-        checkoutNetworkError: "We couldn't save your order due to a network issue. Please try again. (Error Code: ERR_1004)"
+        checkoutNetworkError: "We couldn't save your order due to a network issue. Please try again. (Error Code: ERR_1004)",
+
+        // Cart Comments
+        cartCommentLabel: "Comment or Add-ons (Optional)",
+        cartCommentPlaceholder: "Comment or Add-ons (e.g. Please call before delivery, add extra curry leaves / coriander...)",
+        waCustomerComments: "COMMENT OR ADD-ONS:",
+
+        // Company Statistics
+        lblCompanyStatsHeading: "Company Accounting & Performance Analytics",
+        lblExportCompanyWorkbook: "Export Excel Workbook (.xlsx)",
+        lblWeekWiseChartTitle: "Week-Wise Sales & Profit Trend Visualization"
     },
     te: {
         logoText: "క్షేత్రీవ ఫార్మ్స్",
@@ -762,7 +831,17 @@ const translations = {
         successBtnSend: "వాట్సాప్‌లో పంపండి",
         successBtnChat: "వాట్సాప్ చాట్ ఓపెన్ చేయండి",
         successBtnClose: "మూసివేయండి",
-        checkoutNetworkError: "నెట్‌వర్క్ సమస్య కారణంగా మేము మీ ఆర్డర్‌ను సేవ్ చేయలేకపోయాము. దయచేసి మళ్ళీ ప్రయత్నించండి. (Error Code: ERR_1004)"
+        checkoutNetworkError: "నెట్‌వర్క్ సమస్య కారణంగా మేము మీ ఆర్డర్‌ను సేవ్ చేయలేకపోయాము. దయచేసి మళ్ళీ ప్రయత్నించండి. (Error Code: ERR_1004)",
+
+        // Cart Comments
+        cartCommentLabel: "కామెంట్ లేదా యాడ్-ఆన్స్ (ఐచ్ఛికం)",
+        cartCommentPlaceholder: "ఉదా: డెలివరీకి ముందు కాల్ చేయండి, కొత్తిమీర / కరివేపాకు కొంచెం ఎక్కువ వేయండి...",
+        waCustomerComments: "కామెంట్ లేదా యాడ్-ఆన్స్:",
+
+        // Company Statistics
+        lblCompanyStatsHeading: "కంపెనీ అకౌంటింగ్ & పెర్ఫార్మెన్స్ అనలిటిక్స్",
+        lblExportCompanyWorkbook: "ఎక్సెల్ వర్క్‌బుక్ ఎక్స్‌పోర్ట్ (.xlsx)",
+        lblWeekWiseChartTitle: "వారాల వారీ అమ్మకాలు & లాభాల విజువలైజేషన్"
     }
 };
 
@@ -1021,6 +1100,24 @@ function applyLanguage() {
     if (btnDetailsSubmit) {
         btnDetailsSubmit.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${dict.detailsBtnProceed}`;
     }
+
+    // Cart Comment Section
+    const lblCartComment = document.getElementById('lblCartComment');
+    if (lblCartComment) {
+        lblCartComment.innerHTML = `<i class="fa-solid fa-comment-dots"></i> ${dict.cartCommentLabel || "Comment or Add-ons (Optional)"}`;
+    }
+    const cartCustomerComment = document.getElementById('cartCustomerComment');
+    if (cartCustomerComment) {
+        cartCustomerComment.placeholder = dict.cartCommentPlaceholder || "Comment or Add-ons (e.g. Please call before delivery, add extra curry leaves / coriander...)";
+    }
+
+    // Company Statistics Headings
+    const lblCompanyStatsHeading = document.getElementById('lblCompanyStatsHeading');
+    if (lblCompanyStatsHeading) lblCompanyStatsHeading.textContent = dict.lblCompanyStatsHeading || "Company Accounting & Performance Analytics";
+    const lblExportCompanyWorkbook = document.getElementById('lblExportCompanyWorkbook');
+    if (lblExportCompanyWorkbook) lblExportCompanyWorkbook.textContent = dict.lblExportCompanyWorkbook || "Export Excel Workbook (.xlsx)";
+    const lblWeekWiseChartTitle = document.getElementById('lblWeekWiseChartTitle');
+    if (lblWeekWiseChartTitle) lblWeekWiseChartTitle.textContent = dict.lblWeekWiseChartTitle || "Week-Wise Sales & Profit Trend Visualization";
 }
 
 // Convert GitHub HTML view/edit image URLs to raw viewable URLs
@@ -1713,7 +1810,7 @@ function updateCartUI() {
     // Phase 2: Update Delivery Charges (Struck-off ₹69, Fixed ₹49)
     const cartDeliveryRow = document.getElementById('cartDeliveryRow');
     let deliveryCharge = 49;
-    if (appliedCoupon === 'Delivery@30') {
+    if (appliedCoupon === 'Delivery@New') {
         deliveryCharge = 30;
     } else if (appliedCoupon === 'Delivery@Free') {
         deliveryCharge = 0;
@@ -1730,8 +1827,8 @@ function updateCartUI() {
             if (appliedCoupon === 'Delivery@Free') {
                 const freeText = dict.freeDelivery || 'Free Delivery';
                 cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹49</del> <span style="color: #2e7d32; font-weight: 600;">${freeText}</span> <span style="font-size: 0.75rem; color: #2e7d32; display: block; font-weight: 500; text-align: right;">(Delivery@Free)</span>`;
-            } else if (appliedCoupon === 'Delivery@30') {
-                cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹49</del> <span style="color: #2e7d32; font-weight: 600;">₹30</span> <span style="font-size: 0.75rem; color: #2e7d32; display: block; font-weight: 500; text-align: right;">(Delivery@30)</span>`;
+            } else if (appliedCoupon === 'Delivery@New') {
+                cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹49</del> <span style="color: #2e7d32; font-weight: 600;">₹30</span> <span style="font-size: 0.75rem; color: #2e7d32; display: block; font-weight: 500; text-align: right;">(Delivery@New)</span>`;
             } else {
                 cartDeliverySumEl.innerHTML = `<del style="color: #888; margin-right: 5px;">₹69</del> <span style="color: #2e7d32; font-weight: 600;">₹49</span>`;
             }
@@ -1895,7 +1992,7 @@ function sendCartWhatsAppOrder(name, phone, area, waWindow) {
 
     let deliveryCharge = 49;
     let originalDeliveryDisplay = "~₹69~";
-    if (appliedCoupon === 'Delivery@30') {
+    if (appliedCoupon === 'Delivery@New') {
         deliveryCharge = 30;
         originalDeliveryDisplay = "~₹49~";
     } else if (appliedCoupon === 'Delivery@Free') {
@@ -1918,6 +2015,12 @@ function sendCartWhatsAppOrder(name, phone, area, waWindow) {
         message += isTe ? `ఉప మొత్తం: ₹${subtotal}\n` : `Subtotal: ₹${subtotal}\n`;
         message += isTe ? `డెలివరీ ఛార్జీలు: ${originalDeliveryDisplay} ₹${deliveryCharge}${appliedCoupon ? ' (' + appliedCoupon + ')' : ''}\n` : `Delivery Charges: ${originalDeliveryDisplay} ₹${deliveryCharge}${appliedCoupon ? ' (' + appliedCoupon + ')' : ''}\n`;
         message += isTe ? `*మొత్తం చెల్లింపు: ₹${finalTotal}*\n\n` : `*Total Amount: ₹${finalTotal}*\n\n`;
+    }
+
+    const commentEl = document.getElementById('cartCustomerComment');
+    const custComment = commentEl ? commentEl.value.trim() : '';
+    if (custComment) {
+        message += isTe ? `📝 *కామెంట్ లేదా యాడ్-ఆన్స్:*\n${custComment}\n\n` : `📝 *COMMENT OR ADD-ONS:*\n${custComment}\n\n`;
     }
 
     message += `📅 ${isTe ? 'డెలివరీ:' : 'Delivery:'} ${dict.waDeliveryDay}\n`;
@@ -2080,6 +2183,10 @@ function compileWhatsAppUrl(lead, isMobileScheme = false) {
             message += isTe ? `ఉప మొత్తం: ₹${lead.totalAmount - lead.deliveryCharge}\n` : `Subtotal: ₹${lead.totalAmount - lead.deliveryCharge}\n`;
             message += isTe ? `డెలివరీ ఛార్జీలు: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n` : `Delivery Charges: ${originalDeliveryDisplay} ₹${lead.deliveryCharge}${lead.coupon ? ' (' + lead.coupon + ')' : ''}\n`;
             message += isTe ? `*మొత్తం చెల్లింపు: ₹${lead.totalAmount}*\n\n` : `*Total Amount: ₹${lead.totalAmount}*\n\n`;
+        }
+
+        if (lead.customerComment && lead.customerComment.trim()) {
+            message += isTe ? `📝 *కామెంట్ లేదా యాడ్-ఆన్స్:*\n${lead.customerComment.trim()}\n\n` : `📝 *COMMENT OR ADD-ONS:*\n${lead.customerComment.trim()}\n\n`;
         }
 
         message += `📅 ${isTe ? 'డెలివరీ:' : 'Delivery:'} ${dict.waDeliveryDay}\n`;
@@ -2322,7 +2429,7 @@ if (detailsForm) {
             const currentTier = detectBasketTier(uniqueItems);
             if (appliedCoupon === 'Delivery@Free') {
                 deliveryCharge = 0;
-            } else if (appliedCoupon === 'Delivery@30') {
+            } else if (appliedCoupon === 'Delivery@New') {
                 deliveryCharge = 30;
             } else {
                 deliveryCharge = 49;
@@ -2347,6 +2454,9 @@ if (detailsForm) {
             orderId = `${type === 'order' ? '001' : '001'}_${getDateSuffix(new Date())}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         }
 
+        const commentEl = document.getElementById('cartCustomerComment');
+        const custComment = (commentEl && type === 'order') ? commentEl.value.trim() : '';
+
         const lead = {
             id: orderId,
             name,
@@ -2360,7 +2470,8 @@ if (detailsForm) {
             discountAmount,
             deliveryCharge,
             status,
-            coupon
+            coupon,
+            customerComment: custComment
         };
 
         // Attempt Firestore save with retries
@@ -2777,7 +2888,7 @@ function switchAdminTab(tabName) {
     } else if (tabName === 'companyStats') {
         if (tabCompanyStatsBtn) tabCompanyStatsBtn.classList.add('active');
         if (companyStatsSection) companyStatsSection.style.display = 'block';
-        switchStatsSubTab('analytics');
+        renderCompanyAnalytics();
     } else if (tabName === 'settings') {
         if (tabSettingsBtn) tabSettingsBtn.classList.add('active');
         if (settingsSection) settingsSection.style.display = 'block';
@@ -2867,7 +2978,8 @@ function renderAdminLeads() {
                 <td style="font-weight: 500; color: #555;">${lead.area}</td>
                 <td><span class="lead-badge ${badgeClass}">${badgeLabel}</span></td>
                 <td>
-                    <div class="lead-cart-summary">${lead.cartSummary || '-'}</div>
+                    <div class="lead-cart-summary">${escapeHtml(lead.cartSummary) || '-'}</div>
+                    ${lead.customerComment ? `<div style="font-size: 0.78rem; color: #2e7d32; background: #e8f5e9; border-left: 3px solid #2e7d32; padding: 4px 8px; margin-top: 5px; border-radius: 4px; line-height: 1.3;"><i class="fa-solid fa-comment-dots"></i> <strong>Comment / Add-on:</strong> ${escapeHtml(lead.customerComment)}</div>` : ''}
                 </td>
                 <td>
                     ${actionsHtml}
@@ -3736,7 +3848,7 @@ if (useFirebase && auth) {
 
 // ===== Phase 3: Coupon Code Option =====
 let appliedCoupon = localStorage.getItem('kshetriva_coupon') || '';
-if (appliedCoupon === 'Delivery30') {
+if (appliedCoupon === 'Delivery30' || appliedCoupon === 'Delivery@30') {
     appliedCoupon = '';
     localStorage.removeItem('kshetriva_coupon');
 }
@@ -3775,7 +3887,7 @@ function initCouponLogic() {
         } else {
             // Apply coupon
             const code = couponInput.value.trim();
-            if (code === 'Delivery@30' || code === 'Delivery@Free') {
+            if (code === 'Delivery@New' || code === 'Delivery@Free') {
                 appliedCoupon = code;
                 localStorage.setItem('kshetriva_coupon', code);
                 couponInput.disabled = true;
@@ -3839,7 +3951,13 @@ function renderFounderInsights() {
         let grossSales = 0;
         let totalOrders = 0;
 
-        const ordersOnly = leads.filter(l => l.type === 'order');
+        const ordersOnly = leads
+            .filter(l => l.type === 'order')
+            .sort((a, b) => {
+                const timeA = new Date(a.timestamp || parseInt(a.id)).getTime();
+                const timeB = new Date(b.timestamp || parseInt(b.id)).getTime();
+                return timeB - timeA;
+            });
         totalOrders = ordersOnly.length;
 
         ordersOnly.forEach(o => {
@@ -3887,7 +4005,55 @@ function renderFounderInsights() {
             return;
         }
 
+        let lastRenderedWeek = null;
+
         ordersOnly.forEach(o => {
+            const orderWeek = getWeekRangeString(o.timestamp);
+
+            // Insert color separator for each distinct week group
+            if (orderWeek !== lastRenderedWeek) {
+                lastRenderedWeek = orderWeek;
+                const isPresentWeek = orderWeek === currentWeekStr;
+                const isLocked = isWeekLocked(orderWeek, leads);
+
+                const weekOrders = ordersOnly.filter(ord => getWeekRangeString(ord.timestamp) === orderWeek);
+                let weekTotal = 0;
+                weekOrders.forEach(ord => { weekTotal += (ord.totalAmount || ord.totalSum || 0); });
+                weekTotal = Math.round(weekTotal * 100) / 100;
+
+                const sepTr = document.createElement('tr');
+                sepTr.className = `logistics-week-separator ${isPresentWeek ? 'present-week' : 'past-week'}`;
+
+                const badgeStyle = isPresentWeek
+                    ? 'background: #2e7d32; color: white;'
+                    : (isLocked ? 'background: #64748b; color: white;' : 'background: #e2e8f0; color: #475569; border: 1px solid #cbd5e1;');
+                const badgeLabel = isPresentWeek
+                    ? '<i class="fa-solid fa-leaf"></i> Present Week'
+                    : (isLocked ? '<i class="fa-solid fa-lock"></i> Completed / Locked' : '<i class="fa-regular fa-clock"></i> Previous Week');
+
+                sepTr.innerHTML = `
+                    <td colspan="6" style="padding: 10px 16px; background: ${isPresentWeek ? 'linear-gradient(90deg, #e8f5e9 0%, #f4fbf5 100%)' : 'linear-gradient(90deg, #f1f5f9 0%, #f8fafc 100%)'}; border-top: 2.5px solid ${isPresentWeek ? '#2e7d32' : '#64748b'}; border-bottom: 1.5px solid ${isPresentWeek ? '#c8e6c9' : '#cbd5e1'};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 0.95rem; font-weight: 700; color: ${isPresentWeek ? '#1b5e20' : '#334155'};">
+                                    <i class="fa-solid fa-calendar-week" style="margin-right: 6px; color: ${isPresentWeek ? '#2e7d32' : '#64748b'};"></i>
+                                    Week of ${orderWeek}
+                                </span>
+                                <span style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; ${badgeStyle}">
+                                    ${badgeLabel}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.82rem; font-weight: 600; color: ${isPresentWeek ? '#2e7d32' : '#475569'};">
+                                <span><strong>${weekOrders.length}</strong> ${weekOrders.length === 1 ? 'Order' : 'Orders'}</span>
+                                <span style="margin: 0 6px;">•</span>
+                                <span>Gross Sales: <strong>₹${weekTotal.toFixed(2)}</strong></span>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                logContainer.appendChild(sepTr);
+            }
+
             const tr = document.createElement('tr');
             const displayId = getDisplayLeadId(o, leads);
 
@@ -3901,7 +4067,15 @@ function renderFounderInsights() {
             let itemLines = [];
             if (o.items) {
                 o.items.forEach(item => {
-                    const optText = item.option ? ` (${item.option})` : '';
+                    let optLabel = item.option || '';
+                    if (!optLabel || optLabel.includes('_')) {
+                        const prod = products.find(p => p.id === item.id);
+                        if (prod) {
+                            const optObj = findQuantityOption(prod, item.option, item.price);
+                            if (optObj) optLabel = optObj.label;
+                        }
+                    }
+                    const optText = optLabel ? ` (${optLabel})` : '';
                     itemLines.push(`${item.name}${optText} x ${item.qty}`);
                 });
             }
@@ -3930,7 +4104,10 @@ function renderFounderInsights() {
                     <div style="font-weight: 600; color: var(--text-dark);">${o.name}</div>
                     <div style="font-size: 0.78rem; color: #777;">${o.phone} | ${o.area}</div>
                 </td>
-                <td style="font-size: 0.82rem; color: #555; max-width: 250px;">${itemText}</td>
+                <td style="font-size: 0.82rem; color: #555; max-width: 250px;">
+                    <div>${escapeHtml(itemText)}</div>
+                    ${o.customerComment ? `<div style="font-size: 0.75rem; color: #2e7d32; background: #e8f5e9; border-left: 3px solid #2e7d32; padding: 3px 6px; margin-top: 4px; border-radius: 4px;"><i class="fa-solid fa-comment-dots"></i> <strong>Comment / Add-on:</strong> ${escapeHtml(o.customerComment)}</div>` : ''}
+                </td>
                 <td style="font-weight: 700; color: var(--primary-color);">₹${o.totalAmount || o.totalSum || 0}</td>
                 <td>
                     ${actionsHtml}
@@ -3961,9 +4138,8 @@ function renderLeaderboard(ordersOnly) {
 
                 // Track variant details
                 let optLabel = item.option || '';
-                if (prod && item.option) {
-                    const opts = getQuantityOptions(prod);
-                    const optObj = opts.find(o => o.value === item.option || o.label === item.option);
+                if (prod) {
+                    const optObj = findQuantityOption(prod, item.option, item.price);
                     if (optObj) {
                         optLabel = optObj.label;
                     }
@@ -4060,50 +4236,133 @@ function modifyLeadOrderStatus(leadId, newStatus) {
     }
 }
 
+// ===== Custom Order Items Row Handlers =====
+
+function addCustomOrderItemRow(itemData = null) {
+    const list = document.getElementById('orderCustomItemsList');
+    if (!list) return;
+
+    const row = document.createElement('div');
+    row.className = 'custom-order-item-row';
+    if (itemData && itemData.id) {
+        row.dataset.itemId = itemData.id;
+    }
+
+    const nameVal = itemData ? (itemData.name || '') : '';
+    const qtyVal = itemData && itemData.qty !== undefined ? itemData.qty : '1';
+    const unitVal = itemData ? (itemData.unit || itemData.option || 'unit') : 'unit';
+    const sellVal = itemData && itemData.price !== undefined ? (itemData.pricePerUnit !== undefined ? itemData.pricePerUnit : itemData.price) : '';
+    const costVal = itemData && itemData.costPrice !== undefined ? itemData.costPrice : '';
+
+    row.innerHTML = `
+        <div>
+            <input type="text" class="custom-item-name" placeholder="Item Name (e.g. Honey / Mangoes)" value="${escapeHtml(nameVal)}" required oninput="updateManualOrderCalculations()">
+        </div>
+        <div>
+            <input type="number" class="custom-item-qty" placeholder="Qty" value="${qtyVal}" min="0.01" step="0.01" required oninput="updateManualOrderCalculations()">
+        </div>
+        <div>
+            <input type="text" class="custom-item-unit" placeholder="Unit (kg/bunch/pack)" value="${escapeHtml(unitVal)}">
+        </div>
+        <div>
+            <input type="number" class="custom-item-sell" placeholder="Sell Price (₹)" value="${sellVal}" min="0" step="0.01" required oninput="updateManualOrderCalculations()">
+        </div>
+        <div>
+            <input type="number" class="custom-item-cost" placeholder="Cost Price (₹)" value="${costVal}" min="0" step="0.01" oninput="updateManualOrderCalculations()">
+        </div>
+        <div>
+            <button type="button" class="btn-remove-custom-item" onclick="removeCustomOrderItemRow(this)" title="Remove Custom Item">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
+    `;
+
+    list.appendChild(row);
+    updateManualOrderCalculations();
+}
+
+function removeCustomOrderItemRow(btn) {
+    const row = btn.closest('.custom-order-item-row');
+    if (row) {
+        row.remove();
+        updateManualOrderCalculations();
+    }
+}
+
+function updateManualOrderCalculations() {
+    let subtotal = 0;
+    let itemsCount = 0;
+
+    const checkboxes = document.querySelectorAll('.chk-order-prod:checked');
+    checkboxes.forEach(chk => {
+        const prodId = parseInt(chk.value);
+        const rawProduct = products.find(p => p.id === prodId);
+        if (rawProduct) {
+            const selOpt = document.getElementById(`selOptProd_${prodId}`);
+            const qtyInput = document.getElementById(`qtyProd_${prodId}`);
+            const selectedOption = selOpt ? selOpt.value : '';
+            const qty = parseFloat(qtyInput ? qtyInput.value : 1) || 1;
+            const opts = getQuantityOptions(rawProduct);
+            const optObj = opts.find(o => o.value === selectedOption) || opts[0];
+            const price = optObj ? optObj.price : (rawProduct.pricePerUnit || parseInt((rawProduct.price || '0').replace(/[^\d]/g, '')) || 0);
+            subtotal += price * qty;
+            itemsCount += qty;
+        }
+    });
+
+    const customRows = document.querySelectorAll('.custom-order-item-row');
+    customRows.forEach(row => {
+        const nameInput = row.querySelector('.custom-item-name');
+        const qtyInput = row.querySelector('.custom-item-qty');
+        const sellInput = row.querySelector('.custom-item-sell');
+        if (nameInput && nameInput.value.trim()) {
+            const qty = parseFloat(qtyInput ? qtyInput.value : 1) || 0;
+            const sell = parseFloat(sellInput ? sellInput.value : 0) || 0;
+            subtotal += (sell * qty);
+            itemsCount += qty;
+        }
+    });
+
+    const uniqueItemCount = checkboxes.length + Array.from(customRows).filter(r => r.querySelector('.custom-item-name')?.value.trim()).length;
+    const tier = detectBasketTier(uniqueItemCount);
+    const suggestedPct = tier ? Math.round(tier.discount * 100) : 0;
+
+    const badge = document.getElementById('ordDiscountSuggestBadge');
+    if (badge) {
+        if (suggestedPct > 0) {
+            badge.textContent = `Suggest: ${suggestedPct}%`;
+            badge.style.display = 'inline-block';
+            badge.onclick = () => {
+                const discountInput = document.getElementById('ordDiscountPercentage');
+                if (discountInput) {
+                    discountInput.value = suggestedPct;
+                }
+            };
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
 function openOrderFormModal(leadId) {
     const titleEl = document.getElementById('orderFormTitle');
     const idField = document.getElementById('formOrderId');
     const form = document.getElementById('orderEntryForm');
     const listCheck = document.getElementById('orderProductsChecklist');
+    const customList = document.getElementById('orderCustomItemsList');
 
     // Track if user manually edits discount percentage
     let isDiscountManuallyEdited = false;
     const discountInput = document.getElementById('ordDiscountPercentage');
 
     const updateDiscountSuggestionVisibility = () => {
-        const checkboxes = document.querySelectorAll('.chk-order-prod:checked');
-        const uniqueItemCount = checkboxes.length;
-        const tier = detectBasketTier(uniqueItemCount);
-        const suggestedPct = tier ? Math.round(tier.discount * 100) : 0;
-
-        const badge = document.getElementById('ordDiscountSuggestBadge');
-        if (badge) {
-            if (suggestedPct > 0) {
-                badge.textContent = `Suggest: ${suggestedPct}%`;
-                badge.style.display = 'inline-block';
-                badge.onclick = () => {
-                    if (discountInput) {
-                        discountInput.value = suggestedPct;
-                        isDiscountManuallyEdited = false;
-                        updateDiscountSuggestionVisibility();
-                    }
-                };
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-
-        // Auto-update if not manually edited by the user
-        if (!isDiscountManuallyEdited && discountInput) {
-            discountInput.value = suggestedPct;
-        }
+        updateManualOrderCalculations();
     };
 
     if (discountInput) {
         discountInput.value = 0;
         discountInput.oninput = () => {
             isDiscountManuallyEdited = true;
-            updateDiscountSuggestionVisibility();
         };
     }
 
@@ -4111,6 +4370,7 @@ function openOrderFormModal(leadId) {
         idField.value = leadId || '';
         form.reset();
         listCheck.innerHTML = '';
+        if (customList) customList.innerHTML = '';
 
         products.forEach(p => {
             const itemDiv = document.createElement('div');
@@ -4139,7 +4399,7 @@ function openOrderFormModal(leadId) {
             chk.addEventListener('change', (e) => {
                 sel.disabled = !e.target.checked;
                 qty.disabled = !e.target.checked;
-                updateDiscountSuggestionVisibility();
+                updateManualOrderCalculations();
             });
 
             listCheck.appendChild(itemDiv);
@@ -4167,17 +4427,28 @@ function openOrderFormModal(leadId) {
 
                     if (o.items) {
                         o.items.forEach(item => {
-                            const chk = document.getElementById(`chkProd_${item.id}`);
-                            const sel = document.getElementById(`selOptProd_${item.id}`);
-                            const qty = document.getElementById(`qtyProd_${item.id}`);
+                            const isCustom = item.isOther || !products.some(p => p.id === item.id);
+                            if (isCustom) {
+                                addCustomOrderItemRow(item);
+                            } else {
+                                const chk = document.getElementById(`chkProd_${item.id}`);
+                                const sel = document.getElementById(`selOptProd_${item.id}`);
+                                const qty = document.getElementById(`qtyProd_${item.id}`);
 
-                            if (chk && sel && qty) {
-                                chk.checked = true;
-                                sel.disabled = false;
-                                qty.disabled = false;
+                                if (chk && sel && qty) {
+                                    chk.checked = true;
+                                    sel.disabled = false;
+                                    qty.disabled = false;
 
-                                sel.value = item.option || sel.options[0]?.value;
-                                qty.value = item.qty || 1;
+                                    const prod = products.find(p => p.id === item.id);
+                                    const optObj = findQuantityOption(prod, item.option, item.price);
+                                    if (optObj && optObj.value) {
+                                        sel.value = optObj.value;
+                                    } else if (sel.options.length > 0) {
+                                        sel.selectedIndex = 0;
+                                    }
+                                    qty.value = item.qty || 1;
+                                }
                             }
                         });
                     }
@@ -4198,7 +4469,7 @@ function openOrderFormModal(leadId) {
                     if (discountInput) {
                         discountInput.value = discPct;
                     }
-                    updateDiscountSuggestionVisibility();
+                    updateManualOrderCalculations();
                 }
             });
         } else {
@@ -4212,7 +4483,7 @@ function openOrderFormModal(leadId) {
             if (discountInput) {
                 discountInput.value = 0;
             }
-            updateDiscountSuggestionVisibility();
+            updateManualOrderCalculations();
         }
 
         document.getElementById('orderFormModal').classList.add('open');
@@ -4242,6 +4513,7 @@ function saveManualOrder(e) {
     let subtotal = 0;
     let itemsCount = 0;
 
+    // 1. Process Checked Catalog Products
     const checkboxes = document.querySelectorAll('.chk-order-prod:checked');
     checkboxes.forEach(chk => {
         const prodId = parseInt(chk.value);
@@ -4250,32 +4522,72 @@ function saveManualOrder(e) {
             const selOpt = document.getElementById(`selOptProd_${prodId}`);
             const qtyInput = document.getElementById(`qtyProd_${prodId}`);
 
-            const selectedOption = selOpt.value;
-            const qty = parseInt(qtyInput.value) || 1;
+            const selectedOption = selOpt ? selOpt.value : '';
+            const qty = parseFloat(qtyInput ? qtyInput.value : 1) || 1;
 
             const opts = getQuantityOptions(rawProduct);
             const optObj = opts.find(o => o.value === selectedOption) || opts[0];
             const price = optObj ? optObj.price : rawProduct.pricePerUnit;
             const multiplier = optObj ? (optObj.multiplier || 1) : 1;
+            const optionLabel = optObj ? optObj.label : (selectedOption || '');
 
             const basePrice = rawProduct.pricePerUnit || parseInt((rawProduct.price || '0').replace(/[^\d]/g, ''));
             const itemCostPrice = (rawProduct.costPrice !== undefined) ? rawProduct.costPrice : Math.round(basePrice * 0.6);
 
+            const itemTotal = Math.round(price * qty * 100) / 100;
             items.push({
                 id: prodId,
                 name: rawProduct.name,
                 qty: qty,
-                option: selectedOption,
+                option: optionLabel,
+                unit: rawProduct.unit || 'unit',
                 price: price,
-                total: price * qty,
+                total: itemTotal,
                 costPrice: itemCostPrice,
                 pricePerUnit: basePrice,
                 multiplier: multiplier,
                 category: rawProduct.category
             });
 
-            subtotal += price * qty;
+            subtotal += itemTotal;
             itemsCount += qty;
+        }
+    });
+
+    // 2. Process Custom / Other Items (Text Input & Quantity Input)
+    const customRows = document.querySelectorAll('.custom-order-item-row');
+    customRows.forEach(row => {
+        const nameInput = row.querySelector('.custom-item-name');
+        const qtyInput = row.querySelector('.custom-item-qty');
+        const unitInput = row.querySelector('.custom-item-unit');
+        const sellInput = row.querySelector('.custom-item-sell');
+        const costInput = row.querySelector('.custom-item-cost');
+
+        if (nameInput && nameInput.value.trim()) {
+            const customName = nameInput.value.trim();
+            const customQty = Math.round((parseFloat(qtyInput.value) || 1) * 100) / 100;
+            const customUnit = unitInput && unitInput.value.trim() ? unitInput.value.trim() : 'unit';
+            const customSell = Math.round((parseFloat(sellInput.value) || 0) * 100) / 100;
+            const customCost = costInput && costInput.value !== '' ? Math.round((parseFloat(costInput.value) || 0) * 100) / 100 : Math.round(customSell * 0.6 * 100) / 100;
+            const customTotal = Math.round(customSell * customQty * 100) / 100;
+            const customId = row.dataset.itemId || ('other_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6));
+
+            items.push({
+                id: customId,
+                name: customName,
+                isOther: true,
+                qty: customQty,
+                unit: customUnit,
+                option: customUnit,
+                price: customSell,
+                pricePerUnit: customSell,
+                costPrice: customCost,
+                total: customTotal,
+                multiplier: 1
+            });
+
+            subtotal += customTotal;
+            itemsCount += customQty;
         }
     });
 
@@ -4283,7 +4595,7 @@ function saveManualOrder(e) {
     const discountAmount = Math.round(subtotal * (discountPercentage / 100) * 100) / 100;
     const deliveryChargeVal = parseInt(document.getElementById('ordDeliveryCharge').value) || 0;
     const totalAmount = Math.round((subtotal - discountAmount + deliveryChargeVal) * 100) / 100;
-    const cartSummary = `${itemsCount} items, Total: ₹${totalAmount}`;
+    const cartSummary = `${itemsCount} items, Total: ₹${totalAmount.toFixed(2)}`;
 
     const orderDate = dateInputVal ? new Date(dateInputVal) : new Date();
     const orderIdPromise = idVal ? Promise.resolve(idVal) : generateLeadId(orderDate, 'order');
@@ -4390,6 +4702,30 @@ function clearCurrentWeek() {
     clearWeekOrders(currentWeekStr);
 }
 
+function downloadXlsxWorkbook(wb, filename) {
+    if (typeof XLSX !== 'undefined') {
+        try {
+            XLSX.writeFile(wb, filename);
+            return;
+        } catch (e) {
+            console.warn("XLSX.writeFile fallback to array buffer blob:", e);
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return;
+        }
+    } else {
+        alert("Excel export engine is initializing. Please try again in a moment.");
+    }
+}
+
 function exportLeadsToCSV() {
     fetchAllLeads().then((leads) => {
         if (!leads || leads.length === 0) {
@@ -4397,101 +4733,70 @@ function exportLeadsToCSV() {
             return;
         }
 
-        const thStyle = `style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; background-color: #e8f5e9; border: 1px solid #ccc; padding: 8px; text-align: left;"`;
-        const tdStyle = `style="font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #ccc; padding: 8px; text-align: left;"`;
-
-        // Build styled Excel-compatible HTML content
-        let html = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-            <meta charset="utf-8">
-            <!--[if gte mso 9]>
-            <xml>
-                <x:ExcelWorkbook>
-                    <x:ExcelWorksheets>
-                        <x:ExcelWorksheet>
-                            <x:Name>Customer Leads & Orders</x:Name>
-                            <x:WorksheetOptions>
-                                <x:DisplayGridlines/>
-                            </x:WorksheetOptions>
-                        </x:ExcelWorksheet>
-                    </x:ExcelWorksheets>
-                </x:ExcelWorkbook>
-            </xml>
-            <![endif]-->
-        </head>
-        <body style="font-family: 'Segoe UI', Arial, sans-serif; color: #333;">
-            <div style="font-size: 16pt; font-weight: bold; color: #2e7d32; padding: 10px 0;">Kshetriva Farms - Customer Leads & Orders Log</div>
-            <div style="font-size: 11pt; color: #555; padding-bottom: 15px;">Exported On: <b>${new Date().toLocaleString('en-IN')}</b></div>
-            
-            <table style="border-collapse: collapse; width: 100%; margin-bottom: 25px;">
-                <thead>
-                    <tr>
-                        <th ${thStyle}>Order ID</th>
-                        <th ${thStyle}>Date & Time</th>
-                        <th ${thStyle}>Customer Name</th>
-                        <th ${thStyle}>Phone Number</th>
-                        <th ${thStyle}>Area (Locality)</th>
-                        <th ${thStyle}>Type</th>
-                        <th ${thStyle}>Cart Summary</th>
-                        <th ${thStyle}>Items Ordered</th>
-                        <th ${thStyle}>Total Amount (₹)</th>
-                        <th ${thStyle}>Discount (₹)</th>
-                        <th ${thStyle}>Delivery Charge (₹)</th>
-                        <th ${thStyle}>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        const data = [
+            ["Kshetriva Farms - Customer Leads & Orders Log"],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            [
+                "Order ID", "Date & Time", "Customer Name", "Phone Number", 
+                "Area (Locality)", "Type", "Cart Summary", "Items Ordered", 
+                "Comment or Add-ons", "Total Amount (₹)", "Discount (₹)", "Delivery Charge (₹)", "Status"
+            ]
+        ];
 
         leads.forEach(l => {
             let itemsString = "";
             if (l.items && l.items.length > 0) {
-                itemsString = l.items.map(item => `${item.name} (${item.option || ''}) x${item.qty}`).join("; ");
+                itemsString = l.items.map(item => {
+                    let optLabel = item.option || '';
+                    if (!optLabel || optLabel.includes('_')) {
+                        const prod = products.find(p => p.id === item.id);
+                        if (prod) {
+                            const optObj = findQuantityOption(prod, item.option, item.price);
+                            if (optObj) optLabel = optObj.label;
+                        }
+                    }
+                    const optText = optLabel ? ` (${optLabel})` : '';
+                    return `${item.name}${optText} x${item.qty}`;
+                }).join("; ");
             } else {
                 itemsString = l.cartSummary || "";
             }
 
             const dateStr = new Date(l.timestamp).toLocaleString('en-IN');
             const displayId = getDisplayLeadId(l, leads);
+            const totalAmt = l.totalAmount !== undefined ? (Math.round(l.totalAmount * 100) / 100) : 0;
+            const discAmt = l.discountAmount !== undefined ? (Math.round(l.discountAmount * 100) / 100) : 0;
+            const delAmt = l.deliveryCharge !== undefined ? (Math.round(l.deliveryCharge * 100) / 100) : 0;
 
-            html += `
-                <tr>
-                    <td ${tdStyle}>${displayId}</td>
-                    <td ${tdStyle}>${dateStr}</td>
-                    <td ${tdStyle}>${l.name || ""}</td>
-                    <td ${tdStyle}>${l.phone || ""}</td>
-                    <td ${tdStyle}>${l.area || ""}</td>
-                    <td ${tdStyle}>${l.type || ""}</td>
-                    <td ${tdStyle}>${l.cartSummary || ""}</td>
-                    <td ${tdStyle}>${itemsString}</td>
-                    <td ${tdStyle}>₹${l.totalAmount !== undefined ? l.totalAmount : ""}</td>
-                    <td ${tdStyle}>₹${l.discountAmount !== undefined ? l.discountAmount : ""}</td>
-                    <td ${tdStyle}>₹${l.deliveryCharge !== undefined ? l.deliveryCharge : ""}</td>
-                    <td ${tdStyle}>${l.status || ""}</td>
-                </tr>
-            `;
+            data.push([
+                displayId,
+                dateStr,
+                l.name || "",
+                l.phone || "",
+                l.area || "",
+                l.type || "",
+                l.cartSummary || "",
+                itemsString,
+                l.customerComment || "",
+                totalAmt,
+                discAmt,
+                delAmt,
+                l.status || ""
+            ]);
         });
 
-        html += `
-                </tbody>
-            </table>
-        </body>
-        </html>
-        `;
-
-        const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `kshetriva_leads_export_${Date.now()}.xls`);
-        document.body.appendChild(link);
-
-        link.click();
-
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        if (typeof XLSX !== 'undefined') {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            ws['!cols'] = [
+                { wch: 20 }, { wch: 22 }, { wch: 18 }, { wch: 15 },
+                { wch: 20 }, { wch: 10 }, { wch: 30 }, { wch: 35 },
+                { wch: 25 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 12 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws, "Customer Leads & Orders");
+            downloadXlsxWorkbook(wb, `kshetriva_leads_export_${Date.now()}.xlsx`);
+        }
     });
 }
 
@@ -4533,225 +4838,7 @@ function getDisplayLeadId(lead, allLeads) {
     }
 }
 
-function exportWeekReportToExcel(weekKey) {
-    if (!window.statsWeeksData) return;
-    const wData = window.statsWeeksData[weekKey];
-    if (!wData) return;
 
-    fetchAllLeads().then((leads) => {
-        // Filter orders for the specified week
-        const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
-
-        let pSales = 0;
-        let pExpenses = 0;
-        Object.values(wData.products).forEach(prod => {
-            pSales += prod.totalSales;
-            pExpenses += prod.totalExpense;
-        });
-        pSales = Math.round(pSales * 100) / 100;
-        pExpenses = Math.round(pExpenses * 100) / 100;
-
-        const totalDiscount = Math.round((wData.totalDiscount || 0) * 100) / 100;
-        const totalDeliveryCharge = Math.round((wData.totalDeliveryCharge || 0) * 100) / 100;
-        const netProfit = Math.round((wData.grossSales - wData.expenses) * 100) / 100;
-
-        const thStyle = `style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; background-color: #e8f5e9; border: 1px solid #ccc; padding: 8px; text-align: left;"`;
-        const tdStyle = `style="font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #ccc; padding: 8px; text-align: left;"`;
-
-        // Build styled Excel-compatible HTML content
-        let html = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-            <meta charset="utf-8">
-            <!--[if gte mso 9]>
-            <xml>
-                <x:ExcelWorkbook>
-                    <x:ExcelWorksheets>
-                        <x:ExcelWorksheet>
-                            <x:Name>Weekly Financial Report</x:Name>
-                            <x:WorksheetOptions>
-                                <x:DisplayGridlines/>
-                            </x:WorksheetOptions>
-                        </x:ExcelWorksheet>
-                    </x:ExcelWorksheets>
-                </x:ExcelWorkbook>
-            </xml>
-            <![endif]-->
-        </head>
-        <body style="font-family: 'Segoe UI', Arial, sans-serif; color: #333;">
-            <div style="font-size: 16pt; font-weight: bold; color: #2e7d32; padding: 10px 0;">Kshetriva Farms - Weekly Business Report</div>
-            <div style="font-size: 11pt; color: #555; padding-bottom: 15px;">Reporting Period: Week of <b>${weekKey}</b></div>
-            
-            <!-- Section 1: Weekly Financial Statistics -->
-            <div style="font-size: 13pt; font-weight: bold; color: #1565c0; padding: 10px 0; margin-top: 15px;">1. Weekly Financial Statistics (Overview)</div>
-            <table style="border-collapse: collapse; width: 100%; margin-bottom: 25px;">
-                <thead>
-                    <tr>
-                        <th style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; background-color: #e8f5e9; border: 1px solid #ccc; padding: 8px; text-align: left; width: 250px;">Financial Metric</th>
-                        <th style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; background-color: #e8f5e9; border: 1px solid #ccc; padding: 8px; text-align: left; width: 150px;">Amount (₹)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td ${tdStyle}>Products Subtotal Sales</td>
-                        <td ${tdStyle}>₹${pSales}</td>
-                    </tr>
-                    <tr>
-                        <td ${tdStyle}>Product Expenses (Costs)</td>
-                        <td ${tdStyle}>₹${pExpenses}</td>
-                    </tr>
-                    <tr>
-                        <td style="font-family: 'Segoe UI', Arial, sans-serif; color: #c62828; border: 1px solid #ccc; padding: 8px; text-align: left;">Total Discounts Applied</td>
-                        <td style="font-family: 'Segoe UI', Arial, sans-serif; color: #c62828; border: 1px solid #ccc; padding: 8px; text-align: left;">-₹${totalDiscount}</td>
-                    </tr>
-                    <tr>
-                        <td ${tdStyle}>Delivery Charges Collected</td>
-                        <td ${tdStyle}>+₹${totalDeliveryCharge}</td>
-                    </tr>
-                    <tr style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; background-color: #f5f5f5;">
-                        <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">Weekly Net Profit / Loss</td>
-                        <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left; color: ${netProfit >= 0 ? '#2e7d32' : '#c62828'};">₹${netProfit}</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <table style="border-collapse: collapse; width: 100%; margin-bottom: 25px;"><tr><td style="border: none; height: 20px;"></td></tr><tr><td style="border: none; height: 20px;"></td></tr></table> <!-- Space rows -->
-
-            <!-- Section 2: Product Sales & Profits Breakdown -->
-            <div style="font-size: 13pt; font-weight: bold; color: #1565c0; padding: 10px 0; margin-top: 15px;">2. Product Sales & Profits Breakdown (Detailed)</div>
-            <table style="border-collapse: collapse; width: 100%; margin-bottom: 25px;">
-                <thead>
-                    <tr>
-                        <th ${thStyle}>Product Name</th>
-                        <th ${thStyle}>Quantity Sold</th>
-                        <th ${thStyle}>Selling Price (₹)</th>
-                        <th ${thStyle}>Cost Price (₹)</th>
-                        <th ${thStyle}>Subtotal Sales (₹)</th>
-                        <th ${thStyle}>Subtotal Expenses (₹)</th>
-                        <th ${thStyle}>Product Profit/Loss (₹)</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        Object.keys(wData.products).forEach(pId => {
-            const pObj = wData.products[pId];
-            const prod = products.find(p => p.id === parseInt(pId));
-            let displayName = pObj.name;
-            let displayUnit = pObj.unit;
-            if (prod) {
-                const translatedProd = getTranslatedProduct(prod);
-                displayName = translatedProd.name;
-                displayUnit = translatedProd.unit;
-            }
-
-            const subtotalSales = Math.round(pObj.totalSales * 100) / 100;
-            const subtotalExpense = Math.round(pObj.totalExpense * 100) / 100;
-            const profit = Math.round((subtotalSales - subtotalExpense) * 100) / 100;
-
-            html += `
-                <tr>
-                    <td ${tdStyle}>${displayName}</td>
-                    <td ${tdStyle}>${Math.round(pObj.qty * 100) / 100} ${displayUnit}</td>
-                    <td ${tdStyle}>₹${pObj.pricePerUnit !== undefined ? pObj.pricePerUnit : pObj.price}</td>
-                    <td ${tdStyle}>₹${pObj.costPrice}</td>
-                    <td ${tdStyle}>₹${subtotalSales}</td>
-                    <td ${tdStyle}>₹${subtotalExpense}</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #ccc; padding: 8px; text-align: left; font-weight: bold; color: ${profit >= 0 ? '#2e7d32' : '#c62828'};">₹${profit}</td>
-                </tr>
-            `;
-        });
-
-        const totalProfit = Math.round((pSales - pExpenses) * 100) / 100;
-        html += `
-                <tr style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; background-color: #f5f5f5;">
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">TOTALS</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">-</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">-</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">-</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">₹${pSales}</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left;">₹${pExpenses}</td>
-                    <td style="font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; border: 1px solid #ccc; padding: 8px; text-align: left; color: ${totalProfit >= 0 ? '#2e7d32' : '#c62828'};">₹${totalProfit}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <table style="border-collapse: collapse; width: 100%; margin-bottom: 25px;"><tr><td style="border: none; height: 20px;"></td></tr><tr><td style="border: none; height: 20px;"></td></tr></table> <!-- Space rows -->
-
-        <!-- Section 3: Customer Orders List -->
-        <div style="font-size: 13pt; font-weight: bold; color: #1565c0; padding: 10px 0; margin-top: 15px;">3. Customer Orders Log for the Week</div>
-        <table style="border-collapse: collapse; width: 100%; margin-bottom: 25px;">
-            <thead>
-                <tr>
-                    <th ${thStyle}>Order ID</th>
-                    <th ${thStyle}>Date & Time</th>
-                    <th ${thStyle}>Customer Name</th>
-                    <th ${thStyle}>Phone Number</th>
-                    <th ${thStyle}>Area (Locality)</th>
-                    <th ${thStyle}>Ordered Items</th>
-                    <th ${thStyle}>Total Amount (₹)</th>
-                    <th ${thStyle}>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-        `;
-
-        if (weekOrders.length === 0) {
-            html += `<tr><td colspan="8" style="font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #ccc; padding: 8px; text-align: center; color: #777;">No orders logged for this week.</td></tr>`;
-        } else {
-            const sortedWeekOrders = weekOrders.sort((a, b) => {
-                const timeA = new Date(a.timestamp || parseInt(a.id)).getTime();
-                const timeB = new Date(b.timestamp || parseInt(b.id)).getTime();
-                return timeA - timeB;
-            });
-
-            sortedWeekOrders.forEach((o, idx) => {
-                let itemsString = "";
-                if (o.items && o.items.length > 0) {
-                    itemsString = o.items.map(item => `${item.name} (${item.option || ''}) x${item.qty}`).join("; ");
-                } else {
-                    itemsString = o.cartSummary || "";
-                }
-                const dateStr = new Date(o.timestamp).toLocaleString('en-IN');
-                const orderDate = new Date(o.timestamp);
-                const dateSuffix = getDateSuffix(orderDate);
-                const displayId = getDisplayLeadId(o, leads);
-
-                html += `
-                    <tr>
-                        <td ${tdStyle}>${displayId}</td>
-                        <td ${tdStyle}>${dateStr}</td>
-                        <td ${tdStyle}>${o.name || ""}</td>
-                        <td ${tdStyle}>${o.phone || ""}</td>
-                        <td ${tdStyle}>${o.area || ""}</td>
-                        <td ${tdStyle}>${itemsString}</td>
-                        <td ${tdStyle}>₹${o.totalAmount !== undefined ? o.totalAmount : ""}</td>
-                        <td ${tdStyle}>${o.status || ""}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        html += `
-                </tbody>
-            </table>
-        </body>
-        </html>
-        `;
-
-        // Export HTML Blob as warning-compatible Excel file
-        const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `kshetriva_weekly_report_${weekKey}.xls`);
-        document.body.appendChild(link);
-
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    });
-}
 
 function refreshActiveTab() {
     const leadsSec = document.getElementById('adminLeadsSection');
@@ -4768,9 +4855,7 @@ function refreshActiveTab() {
     updateAdminStats();
 }
 
-function switchStatsSubTab(subTab) {
-    renderCompanyAnalytics();
-}
+// ===== Phase 4.5: Company Accounting & Performance Analytics Engine =====
 
 function getWeekRangeString(dateString) {
     if (!dateString) return "Unknown Week";
@@ -4804,12 +4889,10 @@ function generateLeadId(date, type) {
             if (type === 'order') {
                 const allOrders = leads.filter(l => l.type === 'order');
 
-                // Find max sequence number to prevent conflicts (Max + 1 logic across ALL orders)
                 let maxSeq = 0;
                 allOrders.forEach(o => {
                     if (o.id && o.id.includes('_')) {
                         const parts = o.id.split('_');
-                        // Supports both old 001_DDMMYYYY and new 001_DDMMYYYY-RAND formats
                         if (parts.length >= 2 && parts[0].length === 3) {
                             const seq = parseInt(parts[0]);
                             if (!isNaN(seq) && seq > maxSeq) {
@@ -4825,12 +4908,10 @@ function generateLeadId(date, type) {
             } else {
                 const allChats = leads.filter(l => l.type !== 'order');
 
-                // Find max sequence number for chats (Max + 1 logic across ALL chats)
                 let maxSeq = 0;
                 allChats.forEach(c => {
                     if (c.id && c.id.includes('_')) {
                         const parts = c.id.split('_');
-                        // Supports both old DDMMYYYY_001 and new DDMMYYYY-RAND_001 formats
                         if (parts.length >= 2 && parts[parts.length - 1].length === 3) {
                             const seq = parseInt(parts[parts.length - 1]);
                             if (!isNaN(seq) && seq > maxSeq) {
@@ -4852,11 +4933,11 @@ function isWeekLocked(weekStr, leads) {
     if (!leads) return false;
     const currentWeekStr = getWeekRangeString(new Date().toISOString());
     if (weekStr === currentWeekStr) {
-        return false; // Present week is never locked
+        return false;
     }
     const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekStr);
     if (weekOrders.length === 0) {
-        return true; // No orders in previous weeks means it is considered locked/completed
+        return true;
     }
     return weekOrders.every(o => o.status === 'delivered');
 }
@@ -4868,47 +4949,600 @@ function isLeadLocked(lead, leads) {
 }
 
 function getOptionMultiplier(product, optionStr, itemPrice) {
-    const opts = getQuantityOptions(product);
-    if (optionStr) {
-        let normalized = optionStr.toLowerCase()
-            .replace(/కట్ట/g, 'katta')
-            .replace(/కిలో/g, 'kg')
-            .replace(/పీస్|పీసెస్/g, 'piece');
-
-        const match = opts.find(o => {
-            const labelLower = o.label.toLowerCase();
-            const valueLower = o.value.toLowerCase();
-            return valueLower === optionStr ||
-                labelLower === optionStr ||
-                labelLower === normalized ||
-                labelLower.includes(normalized) ||
-                normalized.includes(labelLower);
-        });
-        if (match) return match.multiplier || 1;
+    if (!product) return 1;
+    const optObj = findQuantityOption(product, optionStr, itemPrice);
+    if (optObj && optObj.multiplier !== undefined) {
+        return optObj.multiplier;
     }
-
-    // Fallback: If optionStr is empty/missing, check if itemPrice matches any option price
     if (itemPrice) {
-        const matchByPrice = opts.find(o => o.price === itemPrice);
-        if (matchByPrice) return matchByPrice.multiplier || 1;
-
-        // Secondary fallback: approximate multiplier as itemPrice / basePrice
         const basePrice = product.pricePerUnit || parseInt((product.price || '0').replace(/[^\d]/g, ''));
         if (basePrice > 0) {
             return itemPrice / basePrice;
         }
     }
-
     return 1;
 }
+
+// ===== Interactive Visualizations for 'Week-Wise Sales & Profit Breakdown' =====
+
+function renderWeekWiseVisualizations(weeks, leads) {
+    const chartContainer = document.getElementById('statsWeekWiseVisualizationChart');
+    const insightsStrip = document.getElementById('statsWeekInsightsStrip');
+    if (!chartContainer) return;
+
+    const weekKeys = Object.keys(weeks).sort((a, b) => {
+        const parseDate = (wStr) => new Date(wStr.split(' - ')[0]);
+        return parseDate(a) - parseDate(b); // chronological order
+    });
+
+    if (weekKeys.length === 0) {
+        chartContainer.innerHTML = `
+            <div style="text-align: center; color: #888; padding: 40px 20px;">
+                <i class="fa-solid fa-chart-simple" style="font-size: 2.2rem; color: #bbb; margin-bottom: 12px; display: block;"></i>
+                No weekly sales or profit data logged yet. Place an order to see live visual analytics!
+            </div>
+        `;
+        if (insightsStrip) insightsStrip.innerHTML = '';
+        return;
+    }
+
+    let maxVal = 1;
+    let totalSalesAllWeeks = 0;
+    let totalProfitAllWeeks = 0;
+    let totalExpensesAllWeeks = 0;
+    let bestProfitWeek = null;
+    let highestProfit = -Infinity;
+
+    const chartData = weekKeys.map(wKey => {
+        const w = weeks[wKey];
+        const sales = Math.round(w.grossSales * 100) / 100;
+        const prodExpenses = Math.round(w.expenses * 100) / 100;
+        const opExpenses = Math.round((w.operationalExpenses || 0) * 100) / 100;
+        const totalExpenses = Math.round((w.totalExpenses !== undefined ? w.totalExpenses : (prodExpenses + opExpenses)) * 100) / 100;
+        const profit = Math.round((sales - totalExpenses) * 100) / 100;
+        const margin = sales > 0 ? Math.round((profit / sales) * 1000) / 10 : 0;
+        const orderCount = w.orders ? w.orders.length : 0;
+
+        if (sales > maxVal) maxVal = sales;
+        if (totalExpenses > maxVal) maxVal = totalExpenses;
+
+        totalSalesAllWeeks += sales;
+        totalExpensesAllWeeks += totalExpenses;
+        totalProfitAllWeeks += profit;
+
+        if (profit > highestProfit) {
+            highestProfit = profit;
+            bestProfitWeek = { weekKey: wKey, profit: profit };
+        }
+
+        return {
+            weekKey: wKey,
+            sales: sales,
+            prodExpenses: prodExpenses,
+            opExpenses: opExpenses,
+            expenses: totalExpenses,
+            profit: profit,
+            margin: margin,
+            orderCount: orderCount,
+            isCurrent: wKey === getWeekRangeString(new Date().toISOString())
+        };
+    });
+
+    const maxChartHeight = 180; // px
+
+    let chartHtml = `
+        <div style="display: flex; gap: 24px; align-items: flex-end; justify-content: flex-start; min-height: 250px; padding: 35px 20px 15px 20px; border-bottom: 2px solid #eef3f0; min-width: ${Math.max(600, chartData.length * 150)}px;">
+    `;
+
+    chartData.forEach(d => {
+        const salesHeight = Math.max(10, Math.round((d.sales / maxVal) * maxChartHeight));
+        const expHeight = Math.max(10, Math.round((d.expenses / maxVal) * maxChartHeight));
+        const isProfit = d.profit >= 0;
+        const profitSign = isProfit ? '+' : '-';
+        const profitColor = isProfit ? '#2e7d32' : '#d32f2f';
+        const profitBg = isProfit ? '#e8f5e9' : '#ffebee';
+        const profitBorder = isProfit ? '#c8e6c9' : '#ffcdd2';
+        const shortWeek = d.weekKey.split(' - ')[0];
+        const expTooltip = d.opExpenses > 0
+            ? `Total Expenses: ₹${d.expenses.toFixed(2)} (Products: ₹${d.prodExpenses.toFixed(2)} + Ops: ₹${d.opExpenses.toFixed(2)})`
+            : `Expenses: ₹${d.expenses.toFixed(2)}`;
+
+        chartHtml += `
+            <div class="week-chart-column" onclick="viewWeekDetails('${escapeHtml(d.weekKey)}')" style="display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 120px; cursor: pointer; transition: transform 0.2s ease, opacity 0.2s;" title="Click to view product & expense breakdown for ${escapeHtml(d.weekKey)}">
+                
+                <!-- Floating Net Profit Badge (Reflects Final Calculation after Ops Expenses) -->
+                <div style="margin-bottom: 10px; background: ${profitBg}; border: 1px solid ${profitBorder}; color: ${profitColor}; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.04); white-space: nowrap; transition: transform 0.2s;">
+                    ${profitSign}₹${Math.abs(d.profit).toFixed(2)}
+                </div>
+
+                <!-- Dual Comparative Bars -->
+                <div style="display: flex; gap: 8px; align-items: flex-end; height: ${maxChartHeight}px; width: 100%; justify-content: center; background: rgba(245,248,246,0.5); border-radius: 8px 8px 0 0; padding: 0 8px;">
+                    <!-- Sales Bar -->
+                    <div style="width: 28px; height: ${salesHeight}px; background: linear-gradient(180deg, #4caf50, #2e7d32); border-radius: 6px 6px 0 0; position: relative; transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 5px rgba(46,125,50,0.25);" title="Gross Sales: ₹${d.sales.toFixed(2)}">
+                    </div>
+                    <!-- Expenses Bar (including Ops Expenses) -->
+                    <div style="width: 28px; height: ${expHeight}px; background: linear-gradient(180deg, #ef5350, #c62828); border-radius: 6px 6px 0 0; position: relative; transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 5px rgba(198,40,40,0.25);" title="${expTooltip}">
+                    </div>
+                </div>
+
+                <!-- Week Label & Margin -->
+                <div style="margin-top: 10px; text-align: center;">
+                    <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); white-space: nowrap;">
+                        ${shortWeek}
+                    </div>
+                    ${d.isCurrent ? '<span style="display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; margin-top: 2px;">Present</span>' : ''}
+                    ${d.opExpenses > 0 ? `<div style="font-size: 0.66rem; color: #0288d1; font-weight: 600; margin-top: 2px;"><i class="fa-solid fa-truck-fast"></i> Ops: ₹${d.opExpenses.toFixed(0)}</div>` : ''}
+                    <div style="font-size: 0.72rem; color: ${profitColor}; font-weight: 600; margin-top: 2px;">
+                        ${isProfit ? '▲' : '▼'} ${d.margin}%
+                    </div>
+                    <div style="font-size: 0.7rem; color: #888;">
+                        ${d.orderCount} orders
+                    </div>
+                </div>
+
+            </div>
+        `;
+    });
+
+    chartHtml += `</div>`;
+    chartContainer.innerHTML = chartHtml;
+
+    // Populate Insights Metric Strip
+    if (insightsStrip) {
+        const numWeeks = chartData.length;
+        const avgWeeklySales = numWeeks > 0 ? (totalSalesAllWeeks / numWeeks).toFixed(2) : '0.00';
+        const avgWeeklyProfit = numWeeks > 0 ? (totalProfitAllWeeks / numWeeks).toFixed(2) : '0.00';
+        const overallMargin = totalSalesAllWeeks > 0 ? ((totalProfitAllWeeks / totalSalesAllWeeks) * 100).toFixed(1) : '0.0';
+
+        insightsStrip.innerHTML = `
+            <div style="background: #f8faf9; border: 1px solid #e0eae2; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(46,125,50,0.1); color: #2e7d32; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #777; font-weight: 600; text-transform: uppercase;">Avg Weekly Revenue</div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-dark);">₹${avgWeeklySales}</div>
+                </div>
+            </div>
+
+            <div style="background: #f8faf9; border: 1px solid #e0eae2; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(2,136,209,0.1); color: #0288d1; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #777; font-weight: 600; text-transform: uppercase;">Avg Weekly Net Profit</div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: ${parseFloat(avgWeeklyProfit) >= 0 ? '#2e7d32' : '#d32f2f'};">₹${avgWeeklyProfit}</div>
+                </div>
+            </div>
+
+            <div style="background: #f8faf9; border: 1px solid #e0eae2; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(245,124,0,0.1); color: #f57c00; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-percent"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #777; font-weight: 600; text-transform: uppercase;">Avg Net Margin</div>
+                    <div style="font-size: 1.05rem; font-weight: 800; color: ${parseFloat(overallMargin) >= 0 ? '#2e7d32' : '#d32f2f'};">${overallMargin}%</div>
+                </div>
+            </div>
+
+            <div style="background: #f8faf9; border: 1px solid #e0eae2; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(156,39,176,0.1); color: #8e24aa; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <div style="font-size: 0.75rem; color: #777; font-weight: 600; text-transform: uppercase;">Top Performing Week</div>
+                    <div style="font-size: 0.95rem; font-weight: 800; color: #2e7d32; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;">
+                        ${bestProfitWeek ? `+₹${bestProfitWeek.profit.toFixed(2)} (${bestProfitWeek.weekKey.split(' - ')[0]})` : 'N/A'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ===== Other / Custom Item Week Breakdown Helpers =====
+
+function updateNewOtherProfitPreview() {
+    const qtyInput = document.getElementById('weekNewOtherQty');
+    const sellInput = document.getElementById('weekNewOtherSell');
+    const costInput = document.getElementById('weekNewOtherCost');
+    const badge = document.getElementById('weekNewOtherProfitBadge');
+    if (!badge) return;
+
+    const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
+    const sell = parseFloat(sellInput ? sellInput.value : 0) || 0;
+    const costVal = costInput ? costInput.value : '';
+    const cost = costVal !== '' ? (parseFloat(costVal) || 0) : Math.round(sell * 0.6 * 100) / 100;
+
+    if (qty > 0 && (sell > 0 || cost > 0)) {
+        const profit = Math.round((sell - cost) * qty * 100) / 100;
+        const isProfit = profit >= 0;
+        badge.style.display = 'inline-block';
+        badge.style.color = isProfit ? '#2e7d32' : '#d32f2f';
+        badge.style.background = isProfit ? '#e8f5e9' : '#ffebee';
+        badge.style.border = isProfit ? '1px solid #c8e6c9' : '1px solid #ffcdd2';
+        badge.innerHTML = `<i class="fa-solid ${isProfit ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> Live Profit/Loss: ${isProfit ? '+' : ''}₹${profit.toFixed(2)}`;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function addWeekOtherProductItem(weekKey) {
+    const nameInput = document.getElementById('weekNewOtherName');
+    const qtyInput = document.getElementById('weekNewOtherQty');
+    const sellInput = document.getElementById('weekNewOtherSell');
+    const costInput = document.getElementById('weekNewOtherCost');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const qty = parseFloat(qtyInput ? qtyInput.value : 0) || 0;
+    const sell = Math.round((parseFloat(sellInput ? sellInput.value : 0) || 0) * 100) / 100;
+    const costVal = costInput ? costInput.value : '';
+    const cost = costVal !== '' ? (Math.round((parseFloat(costVal) || 0) * 100) / 100) : (Math.round(sell * 0.6 * 100) / 100);
+
+    if (!name) {
+        alert("Please enter the other item name.");
+        if (nameInput) nameInput.focus();
+        return;
+    }
+    if (qty <= 0) {
+        alert("Please enter a valid quantity greater than 0.");
+        if (qtyInput) qtyInput.focus();
+        return;
+    }
+
+    const customId = 'other_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    const itemTotal = Math.round(sell * qty * 100) / 100;
+    const newItem = {
+        id: customId,
+        name: name,
+        isOther: true,
+        qty: qty,
+        unit: 'unit',
+        option: 'unit',
+        price: sell,
+        pricePerUnit: sell,
+        costPrice: cost,
+        total: itemTotal,
+        multiplier: 1
+    };
+
+    fetchAllLeads().then((leads) => {
+        const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
+        
+        let targetOrder = null;
+        let isNewOrder = false;
+
+        if (weekOrders.length > 0) {
+            targetOrder = weekOrders[0];
+            if (!targetOrder.items) targetOrder.items = [];
+            targetOrder.items.push(newItem);
+            targetOrder.totalAmount = Math.round(((targetOrder.totalAmount || 0) + itemTotal) * 100) / 100;
+            if (targetOrder.cartSummary) {
+                targetOrder.cartSummary += `, ${name} (${qty} unit)`;
+            }
+        } else {
+            isNewOrder = true;
+            const weekParts = weekKey.split(' - ');
+            const weekDate = new Date(weekParts[0]);
+            targetOrder = {
+                id: `ORD_${Date.now()}`,
+                name: "Week Custom Items",
+                phone: "0000000000",
+                area: "Direct Entry",
+                timestamp: !isNaN(weekDate.getTime()) ? weekDate.toISOString() : new Date().toISOString(),
+                type: 'order',
+                cartSummary: `${name} (${qty} unit), Total: ₹${itemTotal.toFixed(2)}`,
+                items: [newItem],
+                totalAmount: itemTotal,
+                discountAmount: 0,
+                discountPercentage: 0,
+                deliveryCharge: 0,
+                status: 'delivered',
+                coupon: '',
+                comment: 'Added from Week Breakdown'
+            };
+        }
+
+        const onSaved = () => {
+            if (nameInput) nameInput.value = '';
+            if (qtyInput) qtyInput.value = '';
+            if (sellInput) sellInput.value = '';
+            if (costInput) costInput.value = '';
+            updateNewOtherProfitPreview();
+            renderCompanyAnalytics();
+            setTimeout(() => {
+                viewWeekDetails(weekKey);
+            }, 300);
+        };
+
+        if (useFirebase && db) {
+            db.collection("leads").doc(targetOrder.id).set(targetOrder)
+                .then(() => onSaved())
+                .catch(err => {
+                    console.error("Failed to save week other product item to Firestore:", err);
+                    onSaved();
+                });
+        } else {
+            let allLeads = [];
+            const localLeads = localStorage.getItem('kshetriva_leads');
+            if (localLeads) {
+                try { allLeads = JSON.parse(localLeads); } catch (e) { }
+            }
+            if (isNewOrder) {
+                allLeads.unshift(targetOrder);
+            } else {
+                const idx = allLeads.findIndex(l => l.id === targetOrder.id);
+                if (idx !== -1) allLeads[idx] = targetOrder;
+            }
+            localStorage.setItem('kshetriva_leads', JSON.stringify(allLeads));
+            onSaved();
+        }
+    });
+}
+
+function recalcWeekRowLive(weekKey, pId) {
+    const qtyInput = document.getElementById(`inputWeekQty_${weekKey}_${pId}`);
+    const sellInput = document.getElementById(`inputWeekSell_${weekKey}_${pId}`);
+    const costInput = document.getElementById(`inputWeekCost_${weekKey}_${pId}`);
+    const salesSpan = document.getElementById(`cellWeekSales_${weekKey}_${pId}`);
+    const expSpan = document.getElementById(`cellWeekExp_${weekKey}_${pId}`);
+    const profitSpan = document.getElementById(`cellWeekProfit_${weekKey}_${pId}`);
+
+    if (!sellInput || !costInput) return;
+
+    let qty = 1;
+    if (qtyInput) {
+        qty = parseFloat(qtyInput.value) || 0;
+    } else if (window.statsWeeksData && window.statsWeeksData[weekKey] && window.statsWeeksData[weekKey].products[pId]) {
+        qty = window.statsWeeksData[weekKey].products[pId].qty || 1;
+    }
+
+    const sell = parseFloat(sellInput.value) || 0;
+    const cost = parseFloat(costInput.value) || 0;
+
+    const subSales = Math.round(sell * qty * 100) / 100;
+    const subExp = Math.round(cost * qty * 100) / 100;
+    const netProfit = Math.round((subSales - subExp) * 100) / 100;
+
+    if (salesSpan) salesSpan.innerHTML = `<strong>₹${subSales.toFixed(2)}</strong>`;
+    if (expSpan) expSpan.textContent = `₹${subExp.toFixed(2)}`;
+    if (profitSpan) {
+        const isProfit = netProfit >= 0;
+        profitSpan.style.color = isProfit ? 'var(--primary-color)' : '#d32f2f';
+        profitSpan.style.fontWeight = '600';
+        profitSpan.textContent = isProfit ? `₹${netProfit.toFixed(2)}` : `-₹${Math.abs(netProfit).toFixed(2)}`;
+    }
+}
+
+// ===== Weekly Operational Expenses (Transport, Fuel, Misc) Engine =====
+
+function getWeekOpExpensesMap() {
+    if (window.weekOpExpensesData) return window.weekOpExpensesData;
+    const raw = localStorage.getItem('kshetriva_week_expenses');
+    if (raw) {
+        try {
+            window.weekOpExpensesData = JSON.parse(raw);
+            return window.weekOpExpensesData;
+        } catch (e) {
+            console.error("Error parsing kshetriva_week_expenses:", e);
+        }
+    }
+    window.weekOpExpensesData = {};
+    return window.weekOpExpensesData;
+}
+
+function saveWeekOpExpensesMap(map) {
+    window.weekOpExpensesData = map;
+    localStorage.setItem('kshetriva_week_expenses', JSON.stringify(map));
+    if (useFirebase && db) {
+        db.collection("config").doc("week_expenses").set({ data: JSON.stringify(map) })
+            .catch(err => console.error("Firestore save week_expenses failed:", err));
+    }
+}
+
+function getWeekOperationalExpenses(weekKey) {
+    const map = getWeekOpExpensesMap();
+    return map[weekKey] || [];
+}
+
+function getWeekOperationalExpensesTotal(weekKey) {
+    const list = getWeekOperationalExpenses(weekKey);
+    let total = 0;
+    list.forEach(item => {
+        total += (parseFloat(item.amount) || 0);
+    });
+    return Math.round(total * 100) / 100;
+}
+
+function setExpensePreset(title, category) {
+    const titleInput = document.getElementById('weekNewExpenseTitle');
+    const catSelect = document.getElementById('weekNewExpenseCat');
+    const amtInput = document.getElementById('weekNewExpenseAmount');
+    if (titleInput) titleInput.value = title;
+    if (catSelect) catSelect.value = category;
+    if (amtInput) amtInput.focus();
+}
+
+function addWeekOperationalExpense(weekKey) {
+    const titleInput = document.getElementById('weekNewExpenseTitle');
+    const catSelect = document.getElementById('weekNewExpenseCat');
+    const amtInput = document.getElementById('weekNewExpenseAmount');
+
+    const title = titleInput ? titleInput.value.trim() : '';
+    const category = catSelect ? catSelect.value : 'misc';
+    const amount = Math.round((parseFloat(amtInput ? amtInput.value : 0) || 0) * 100) / 100;
+
+    if (!title) {
+        alert("Please enter the expense title or description (e.g. Delivery Van Fuel).");
+        if (titleInput) titleInput.focus();
+        return;
+    }
+    if (amount <= 0) {
+        alert("Please enter a valid expense amount in ₹ greater than 0.");
+        if (amtInput) amtInput.focus();
+        return;
+    }
+
+    const map = getWeekOpExpensesMap();
+    if (!map[weekKey]) map[weekKey] = [];
+
+    const newExpense = {
+        id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        title: title,
+        category: category,
+        amount: amount,
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    map[weekKey].push(newExpense);
+    saveWeekOpExpensesMap(map);
+
+    if (titleInput) titleInput.value = '';
+    if (amtInput) amtInput.value = '';
+
+    renderWeekOperationalExpensesList(weekKey);
+    renderCompanyAnalytics();
+    refreshWeekDetailsIfOpen(weekKey);
+}
+
+function saveWeekOperationalExpense(weekKey, expId, btnEl) {
+    const titleInput = document.getElementById(`inputWeekExpTitle_${weekKey}_${expId}`);
+    const catSelect = document.getElementById(`inputWeekExpCat_${weekKey}_${expId}`);
+    const amtInput = document.getElementById(`inputWeekExpAmount_${weekKey}_${expId}`);
+
+    if (!titleInput || !amtInput) return;
+
+    const newTitle = titleInput.value.trim();
+    const newCat = catSelect ? catSelect.value : 'misc';
+    const newAmount = Math.round((parseFloat(amtInput.value) || 0) * 100) / 100;
+
+    if (!newTitle || newAmount <= 0) {
+        alert("Please provide a valid title and amount greater than 0.");
+        return;
+    }
+
+    const map = getWeekOpExpensesMap();
+    if (!map[weekKey]) return;
+
+    const item = map[weekKey].find(e => e.id === expId);
+    if (item) {
+        item.title = newTitle;
+        item.category = newCat;
+        item.amount = newAmount;
+        saveWeekOpExpensesMap(map);
+
+        if (btnEl) {
+            const originalContent = btnEl.innerHTML;
+            btnEl.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+            btnEl.style.backgroundColor = "#2e7d32";
+            btnEl.style.borderColor = "#2e7d32";
+            btnEl.disabled = true;
+            setTimeout(() => {
+                btnEl.innerHTML = originalContent;
+                btnEl.style.backgroundColor = "";
+                btnEl.style.borderColor = "";
+                btnEl.disabled = false;
+            }, 1000);
+        }
+
+        renderWeekOperationalExpensesList(weekKey);
+        renderCompanyAnalytics();
+        refreshWeekDetailsIfOpen(weekKey);
+    }
+}
+
+function deleteWeekOperationalExpense(weekKey, expId) {
+    if (!confirm("Are you sure you want to remove this operational expense?")) {
+        return;
+    }
+
+    const map = getWeekOpExpensesMap();
+    if (!map[weekKey]) return;
+
+    map[weekKey] = map[weekKey].filter(e => e.id !== expId);
+    saveWeekOpExpensesMap(map);
+
+    renderWeekOperationalExpensesList(weekKey);
+    renderCompanyAnalytics();
+    refreshWeekDetailsIfOpen(weekKey);
+}
+
+function refreshWeekDetailsIfOpen(weekKey) {
+    const container = document.getElementById('weekDetailsContainer');
+    if (container && container.style.display !== 'none' && window.currentOpenWeekKey === weekKey) {
+        viewWeekDetails(weekKey);
+    }
+}
+
+function renderWeekOperationalExpensesList(weekKey) {
+    const listContainer = document.getElementById('weekOpExpensesList');
+    const totalBadge = document.getElementById('weekOpExpensesTotalBadge');
+    if (!listContainer) return;
+
+    const expenses = getWeekOperationalExpenses(weekKey);
+    const total = getWeekOperationalExpensesTotal(weekKey);
+
+    if (totalBadge) {
+        totalBadge.textContent = `Total Expenses: ₹${total.toFixed(2)}`;
+        totalBadge.style.background = total > 0 ? '#ffebee' : '#f0f4f8';
+        totalBadge.style.color = total > 0 ? '#d32f2f' : '#475569';
+        totalBadge.style.borderColor = total > 0 ? '#ffcdd2' : '#cbd5e1';
+    }
+
+    if (expenses.length === 0) {
+        listContainer.innerHTML = `
+            <div style="text-align: center; color: #94a3b8; padding: 15px; font-size: 0.86rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                <i class="fa-solid fa-receipt" style="font-size: 1.2rem; margin-bottom: 5px; display: block; color: #cbd5e1;"></i>
+                No operational expenses (transport, fuel, packaging, labor, etc.) logged for this week yet. Use the inputs above to add one.
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    expenses.forEach(exp => {
+        html += `
+            <div class="week-op-expense-row">
+                <div>
+                    <input type="text" id="inputWeekExpTitle_${weekKey}_${exp.id}" value="${escapeHtml(exp.title)}" placeholder="Expense Description" style="background: #fff; font-weight: 600;">
+                </div>
+                <div>
+                    <select id="inputWeekExpCat_${weekKey}_${exp.id}" style="background: #fff;">
+                        <option value="transport" ${exp.category === 'transport' ? 'selected' : ''}>🚗 Transport</option>
+                        <option value="fuel" ${exp.category === 'fuel' ? 'selected' : ''}>⛽ Fuel / Diesel</option>
+                        <option value="packaging" ${exp.category === 'packaging' ? 'selected' : ''}>📦 Packaging</option>
+                        <option value="labor" ${exp.category === 'labor' ? 'selected' : ''}>👷 Labor / Loading</option>
+                        <option value="tolls" ${exp.category === 'tolls' ? 'selected' : ''}>🛣️ Tolls & Parking</option>
+                        <option value="misc" ${exp.category === 'misc' ? 'selected' : ''}>📝 Miscellaneous</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="number" id="inputWeekExpAmount_${weekKey}_${exp.id}" value="${(Math.round(exp.amount * 100) / 100).toFixed(2)}" step="0.01" min="0.01" placeholder="Amount (₹)" style="background: #fff; font-weight: 700; color: #d32f2f;">
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end;">
+                    <span style="font-size: 0.72rem; color: #64748b; margin-right: 4px; white-space: nowrap;">${exp.date || ''}</span>
+                    <button class="btn btn-primary" onclick="saveWeekOperationalExpense('${weekKey}', '${exp.id}', this)" style="padding: 6px 10px; font-size: 0.8rem; border-radius: 8px;" title="Save changes for this expense">
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                    <button class="btn btn-secondary" onclick="deleteWeekOperationalExpense('${weekKey}', '${exp.id}')" style="padding: 6px 10px; font-size: 0.8rem; border-radius: 8px; border: 1.5px solid #d32f2f; color: #d32f2f; background: white;" title="Remove this expense">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    listContainer.innerHTML = html;
+}
+
+// ===== Company Analytics Main Calculation Engine =====
 
 function renderCompanyAnalytics() {
     fetchAllLeads().then((leads) => {
         const ordersOnly = leads.filter(l => l.type === 'order');
-
-        // Group orders by week
         const weeks = {};
 
+        // Process customer storefront orders
         ordersOnly.forEach(o => {
             const weekStr = getWeekRangeString(o.timestamp);
             if (!weeks[weekStr]) {
@@ -4917,6 +5551,8 @@ function renderCompanyAnalytics() {
                     orders: [],
                     grossSales: 0,
                     expenses: 0,
+                    operationalExpenses: 0,
+                    totalExpenses: 0,
                     totalDiscount: 0,
                     totalDeliveryCharge: 0,
                     products: {}
@@ -4930,7 +5566,8 @@ function renderCompanyAnalytics() {
 
             if (o.items) {
                 o.items.forEach(item => {
-                    const prod = products.find(p => p.id === item.id);
+                    const isOtherItem = item.isOther || (typeof item.id === 'string' && item.id.startsWith('other_'));
+                    const prod = !isOtherItem ? products.find(p => p.id === parseInt(item.id)) : null;
                     let baseCostPrice = 0;
                     let multiplier = 1;
                     let itemExpense = 0;
@@ -4941,37 +5578,45 @@ function renderCompanyAnalytics() {
                     if (prod) {
                         multiplier = item.multiplier !== undefined ? item.multiplier : getOptionMultiplier(prod, item.option, item.price);
                         if (item.costPrice !== undefined) {
-                            baseCostPrice = item.costPrice;
+                            baseCostPrice = Math.round(parseFloat(item.costPrice) * 100) / 100;
                         } else if (isPreviousWeek) {
-                            // Previous weeks are locked; fallback to 60% of base selling price
-                            const basePrice = prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, ''));
-                            baseCostPrice = Math.round(basePrice * 0.6);
+                            const basePrice = prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, '')) || 0;
+                            baseCostPrice = Math.round(basePrice * 0.6 * 100) / 100;
                         } else if (prod.costPrice !== undefined) {
-                            // Present week: use catalog costPrice if available
-                            baseCostPrice = prod.costPrice;
+                            baseCostPrice = Math.round(parseFloat(prod.costPrice) * 100) / 100;
                         } else {
-                            const basePrice = prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, ''));
-                            baseCostPrice = Math.round(basePrice * 0.6);
+                            const basePrice = prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, '')) || 0;
+                            baseCostPrice = Math.round(basePrice * 0.6 * 100) / 100;
                         }
-                        itemExpense = Math.round(baseCostPrice * multiplier * item.qty);
+                        itemExpense = Math.round(baseCostPrice * multiplier * item.qty * 100) / 100;
                     } else {
                         if (item.costPrice !== undefined) {
-                            baseCostPrice = item.costPrice;
+                            baseCostPrice = Math.round(parseFloat(item.costPrice) * 100) / 100;
                         } else if (item.price) {
-                            baseCostPrice = Math.round(item.price * 0.6);
+                            baseCostPrice = Math.round(parseFloat(item.price) * 0.6 * 100) / 100;
                         }
-                        itemExpense = Math.round(baseCostPrice * item.qty);
+                        itemExpense = Math.round(baseCostPrice * item.qty * 100) / 100;
                     }
 
                     weeks[weekStr].expenses += itemExpense;
 
-                    const basePrice = item.pricePerUnit !== undefined ? item.pricePerUnit : (prod ? (prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, ''))) : item.price);
-                    if (!weeks[weekStr].products[item.id]) {
-                        weeks[weekStr].products[item.id] = {
+                    let basePrice = item.pricePerUnit !== undefined ? Math.round(parseFloat(item.pricePerUnit) * 100) / 100 : null;
+                    if (basePrice === null) {
+                        if (prod) {
+                            basePrice = prod.pricePerUnit || parseInt((prod.price || '0').replace(/[^\d]/g, '')) || 0;
+                        } else {
+                            basePrice = item.price || 0;
+                        }
+                    }
+
+                    const itemKey = item.id;
+                    if (!weeks[weekStr].products[itemKey]) {
+                        weeks[weekStr].products[itemKey] = {
                             id: item.id,
                             name: item.name,
+                            isOther: isOtherItem || !prod,
                             qty: 0,
-                            unit: prod ? prod.unit : 'unit',
+                            unit: item.unit || (prod ? prod.unit : 'unit'),
                             price: basePrice,
                             pricePerUnit: basePrice,
                             costPrice: baseCostPrice,
@@ -4980,10 +5625,38 @@ function renderCompanyAnalytics() {
                         };
                     }
 
-                    weeks[weekStr].products[item.id].qty += (item.qty * multiplier);
-                    weeks[weekStr].products[item.id].totalSales += item.total || (item.price * item.qty);
-                    weeks[weekStr].products[item.id].totalExpense += itemExpense;
+                    weeks[weekStr].products[itemKey].qty += (item.qty * multiplier);
+                    weeks[weekStr].products[itemKey].totalSales += item.total || (item.price * item.qty);
+                    weeks[weekStr].products[itemKey].totalExpense += itemExpense;
                 });
+            }
+        });
+
+        // Add operational expenses (transport, fuel, misc) to each week
+        Object.keys(weeks).forEach(weekStr => {
+            const opExpenses = getWeekOperationalExpensesTotal(weekStr);
+            weeks[weekStr].operationalExpenses = opExpenses;
+            weeks[weekStr].totalExpenses = Math.round((weeks[weekStr].expenses + opExpenses) * 100) / 100;
+        });
+
+        // Also check if any week has operational expenses but no orders
+        const opMap = getWeekOpExpensesMap();
+        Object.keys(opMap).forEach(weekStr => {
+            if (!weeks[weekStr]) {
+                const opExpenses = getWeekOperationalExpensesTotal(weekStr);
+                if (opExpenses > 0) {
+                    weeks[weekStr] = {
+                        weekStr: weekStr,
+                        orders: [],
+                        grossSales: 0,
+                        expenses: 0,
+                        operationalExpenses: opExpenses,
+                        totalExpenses: opExpenses,
+                        totalDiscount: 0,
+                        totalDeliveryCharge: 0,
+                        products: {}
+                    };
+                }
             }
         });
 
@@ -4993,27 +5666,37 @@ function renderCompanyAnalytics() {
 
         Object.values(weeks).forEach(w => {
             allTimeSales += w.grossSales;
-            allTimeExpense += w.expenses;
+            allTimeExpense += (w.totalExpenses !== undefined ? w.totalExpenses : w.expenses);
         });
 
         allTimeSales = Math.round(allTimeSales * 100) / 100;
         allTimeExpense = Math.round(allTimeExpense * 100) / 100;
         const allTimeProfit = Math.round((allTimeSales - allTimeExpense) * 100) / 100;
 
-        document.getElementById('statsAllTimeSales').textContent = `₹${allTimeSales}`;
-        document.getElementById('statsAllTimeExpense').textContent = `₹${allTimeExpense}`;
-
+        const allSalesEl = document.getElementById('statsAllTimeSales');
+        const allExpEl = document.getElementById('statsAllTimeExpense');
         const profitEl = document.getElementById('statsAllTimeProfit');
-        profitEl.textContent = `₹${Math.abs(allTimeProfit)}`;
-        if (allTimeProfit >= 0) {
-            profitEl.style.color = 'var(--primary-color)';
-            profitEl.parentElement.querySelector('.stat-label').textContent = 'All-Time Profit';
-        } else {
-            profitEl.style.color = '#d32f2f';
-            profitEl.parentElement.querySelector('.stat-label').textContent = 'All-Time Loss';
+
+        if (allSalesEl) allSalesEl.textContent = `₹${allTimeSales.toFixed(2)}`;
+        if (allExpEl) allExpEl.textContent = `₹${allTimeExpense.toFixed(2)}`;
+
+        if (profitEl) {
+            profitEl.textContent = `₹${Math.abs(allTimeProfit).toFixed(2)}`;
+            if (allTimeProfit >= 0) {
+                profitEl.style.color = 'var(--primary-color)';
+                const lbl = profitEl.parentElement.querySelector('.stat-label');
+                if (lbl) lbl.textContent = 'All-Time Profit';
+            } else {
+                profitEl.style.color = '#d32f2f';
+                const lbl = profitEl.parentElement.querySelector('.stat-label');
+                if (lbl) lbl.textContent = 'All-Time Loss';
+            }
         }
 
-        // Render week-wise table
+        // Render dedicated interactive visualization
+        renderWeekWiseVisualizations(weeks, leads);
+
+        // Render week-wise breakdown table
         const tbody = document.getElementById('statsWeekBreakdownList');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -5029,8 +5712,9 @@ function renderCompanyAnalytics() {
         if (sortedWeekKeys.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; color: #888; padding: 20px;">
-                        No orders recorded yet.
+                    <td colspan="6" style="text-align: center; color: #888; padding: 25px;">
+                        <i class="fa-solid fa-basket-shopping" style="font-size: 1.8rem; margin-bottom: 8px; display: block; color: var(--primary-color);"></i>
+                        No customer orders or weekly expenses recorded yet. Place orders via the storefront to view weekly performance.
                     </td>
                 </tr>
             `;
@@ -5043,11 +5727,11 @@ function renderCompanyAnalytics() {
             const w = weeks[wKey];
             const tr = document.createElement('tr');
 
-            const displayGrossSales = Math.round(w.grossSales * 100) / 100;
-            const displayExpenses = Math.round(w.expenses * 100) / 100;
-            const profit = Math.round((w.grossSales - w.expenses) * 100) / 100;
+            const displayGrossSales = (Math.round(w.grossSales * 100) / 100).toFixed(2);
+            const displayExpenses = (Math.round((w.totalExpenses !== undefined ? w.totalExpenses : w.expenses) * 100) / 100).toFixed(2);
+            const profit = Math.round((w.grossSales - (w.totalExpenses !== undefined ? w.totalExpenses : w.expenses)) * 100) / 100;
             const profitStyle = profit >= 0 ? 'color: var(--primary-color); font-weight: 700;' : 'color: #d32f2f; font-weight: 700;';
-            const profitLabel = profit >= 0 ? `₹${profit}` : `-₹${Math.abs(profit)}`;
+            const profitLabel = profit >= 0 ? `₹${profit.toFixed(2)}` : `-₹${Math.abs(profit).toFixed(2)}`;
 
             const isCurrentWeek = w.weekStr === getWeekRangeString(new Date().toISOString());
             const isCompleted = isWeekLocked(w.weekStr, leads);
@@ -5069,11 +5753,21 @@ function renderCompanyAnalytics() {
                        <i class="fa-solid fa-trash-can"></i> Clear
                    </button>`;
 
+            let expBreakdownHtml = `₹${displayExpenses}`;
+            if (w.operationalExpenses > 0) {
+                expBreakdownHtml = `
+                    <div>
+                        <strong>₹${displayExpenses}</strong>
+                        <div style="font-size: 0.72rem; color: #64748b;">(Products: ₹${w.expenses.toFixed(2)} + Ops: ₹${w.operationalExpenses.toFixed(2)})</div>
+                    </div>
+                `;
+            }
+
             tr.innerHTML = `
                 <td style="font-weight: 600; color: var(--text-dark);">${w.weekStr}${statusBadgeHtml}</td>
                 <td>${w.orders.length}</td>
                 <td><strong>₹${displayGrossSales}</strong></td>
-                <td>₹${displayExpenses}</td>
+                <td>${expBreakdownHtml}</td>
                 <td style="${profitStyle}">${profitLabel}</td>
                 <td>
                     <div style="display: flex; gap: 5px;">
@@ -5089,7 +5783,320 @@ function renderCompanyAnalytics() {
     });
 }
 
+// ===== Clean Multi-Sheet Excel Workbook Export Engine =====
+
+function exportCompanyWorkbookExcel() {
+    fetchAllLeads().then((leads) => {
+        if (typeof XLSX === 'undefined') {
+            alert("Excel library is loading, please try again in a moment.");
+            return;
+        }
+
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Weekly Summary
+        const s1Data = [
+            ["Kshetriva Farms - Company Performance & Accounting Workbook"],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Week Period (Mon - Sun)", "Total Orders", "Gross Sales (₹)", "Product Cost Expenses (₹)", "Operational Expenses (Transport/Fuel) (₹)", "Total Expenses (₹)", "Net Profit / Loss (₹)", "Profit Margin (%)", "Status"]
+        ];
+        const weeksMap = window.statsWeeksData || {};
+        const sortedWeeks = Object.keys(weeksMap).sort((a, b) => new Date(b.split(' - ')[0]) - new Date(a.split(' - ')[0]));
+
+        if (sortedWeeks.length === 0) {
+            s1Data.push(["No weekly sales data recorded."]);
+        } else {
+            sortedWeeks.forEach(wKey => {
+                const w = weeksMap[wKey];
+                const totalExp = w.totalExpenses !== undefined ? w.totalExpenses : w.expenses;
+                const profit = Math.round((w.grossSales - totalExp) * 100) / 100;
+                const margin = w.grossSales > 0 ? ((profit / w.grossSales) * 100).toFixed(1) + '%' : '0.0%';
+                const isLocked = isWeekLocked(w.weekStr, leads);
+                s1Data.push([
+                    w.weekStr,
+                    w.orders.length,
+                    Math.round(w.grossSales * 100) / 100,
+                    Math.round(w.expenses * 100) / 100,
+                    Math.round((w.operationalExpenses || 0) * 100) / 100,
+                    Math.round(totalExp * 100) / 100,
+                    profit,
+                    margin,
+                    isLocked ? 'Completed / Locked' : 'Active / Incomplete'
+                ]);
+            });
+        }
+        const ws1 = XLSX.utils.aoa_to_sheet(s1Data);
+        ws1['!cols'] = [{ wch: 25 }, { wch: 14 }, { wch: 16 }, { wch: 24 }, { wch: 32 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 22 }];
+        XLSX.utils.book_append_sheet(wb, ws1, "Weekly Summary");
+
+        // Sheet 2: Operational Expenses Master Log
+        const s2Data = [
+            ["Kshetriva Farms - Weekly Operational Expenses Master Log (Transport, Fuel, Packaging, etc.)"],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Week Period", "Expense Title / Description", "Category", "Amount (₹)", "Date Logged"]
+        ];
+        const opMap = getWeekOpExpensesMap();
+        let totalOpAll = 0;
+        Object.keys(opMap).forEach(wKey => {
+            const list = opMap[wKey] || [];
+            list.forEach(exp => {
+                totalOpAll += exp.amount;
+                s2Data.push([
+                    wKey,
+                    exp.title || '-',
+                    exp.category || 'misc',
+                    Math.round(exp.amount * 100) / 100,
+                    exp.date || '-'
+                ]);
+            });
+        });
+        if (s2Data.length === 4) {
+            s2Data.push(["No operational expenses logged across any week."]);
+        } else {
+            s2Data.push([]);
+            s2Data.push(["TOTAL OPERATIONAL EXPENSES", "-", "-", Math.round(totalOpAll * 100) / 100, "-"]);
+        }
+        const ws2 = XLSX.utils.aoa_to_sheet(s2Data);
+        ws2['!cols'] = [{ wch: 25 }, { wch: 32 }, { wch: 18 }, { wch: 16 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, ws2, "Operational Expenses");
+
+        // Sheet 3: Product Master Catalog
+        const s3Data = [
+            ["Kshetriva Farms - Product Master Catalog & Base Pricing"],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Product ID", "Product Name (EN)", "Product Name (TE)", "Category", "Standard Unit", "Selling Price (₹)", "Cost Price (₹)", "Stock Status"]
+        ];
+        products.forEach(p => {
+            const sell = p.pricePerUnit || parseInt((p.price || '0').replace(/[^\d]/g, '')) || 0;
+            const cost = p.costPrice !== undefined ? p.costPrice : Math.round(sell * 0.6 * 100) / 100;
+            s3Data.push([
+                `#${p.id}`,
+                p.name || '-',
+                (p.translations && p.translations.te ? p.translations.te.name : p.name) || '-',
+                p.category || '-',
+                p.unit || '-',
+                Math.round(sell * 100) / 100,
+                Math.round(cost * 100) / 100,
+                p.inStock !== false ? 'In Stock' : 'Out of Stock'
+            ]);
+        });
+        const ws3 = XLSX.utils.aoa_to_sheet(s3Data);
+        ws3['!cols'] = [{ wch: 12 }, { wch: 24 }, { wch: 24 }, { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 16 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, ws3, "Product Catalog");
+
+        // Sheet 4: Customer Orders with Comments / Add-ons
+        const s4Data = [
+            ["Kshetriva Farms - Customer Orders Log"],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Order ID", "Date & Time", "Customer Name", "Phone Number", "Delivery Area", "Order Items Summary", "Total Amount (₹)", "Discount (₹)", "Delivery Charge (₹)", "Order Status", "Comment or Add-ons"]
+        ];
+        const allOrders = leads.filter(l => l.type === 'order').sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        if (allOrders.length === 0) {
+            s4Data.push(["No customer orders placed yet."]);
+        } else {
+            allOrders.forEach(o => {
+                const dateStr = o.timestamp ? new Date(o.timestamp).toLocaleString('en-IN') : '-';
+                const itemsSummary = o.items ? o.items.map(it => `${it.name} (${it.qty} ${it.option || it.unit || ''})`).join(', ') : (o.cartSummary || '-');
+                s4Data.push([
+                    o.id || '-',
+                    dateStr,
+                    o.name || '-',
+                    o.phone || '-',
+                    o.area || '-',
+                    itemsSummary,
+                    o.totalAmount || o.totalSum || 0,
+                    o.discountAmount || 0,
+                    o.deliveryCharge || 0,
+                    o.status || 'pending',
+                    o.comment || o.orderNote || o.customerComment || ''
+                ]);
+            });
+        }
+        const ws4 = XLSX.utils.aoa_to_sheet(s4Data);
+        ws4['!cols'] = [{ wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 40 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 35 }];
+        XLSX.utils.book_append_sheet(wb, ws4, "Customer Orders");
+
+        downloadXlsxWorkbook(wb, `kshetriva_accounting_workbook_${Date.now()}.xlsx`);
+    });
+}
+
+// Single-Week Report Excel Export (Multi-Sheet: Product Breakdown, Operational Expenses, Financial Summary, Orders Log)
+function exportWeekReportToExcel(weekKey) {
+    if (!window.statsWeeksData || !window.statsWeeksData[weekKey]) {
+        alert("No data available for selected week.");
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        alert("Excel library is loading, please try again in a moment.");
+        return;
+    }
+
+    const wData = window.statsWeeksData[weekKey];
+    fetchAllLeads().then((leads) => {
+        const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Product Sales & Profits Breakdown
+        const s1Data = [
+            [`Kshetriva Farms - Product Sales & Profits Breakdown`],
+            [`Reporting Period: Week of ${weekKey}`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Product / Item Name", "Quantity Sold", "Unit", "Selling Price (₹)", "Cost Price (₹)", "Subtotal Sales (₹)", "Subtotal Expenses (₹)", "Product Profit / Loss (₹)"]
+        ];
+
+        const pKeys = Object.keys(wData.products);
+        let grandSales = 0;
+        let grandProductExpenses = 0;
+
+        if (pKeys.length === 0) {
+            s1Data.push(["No products sold in this week."]);
+        } else {
+            pKeys.forEach(pId => {
+                const pObj = wData.products[pId];
+                const prod = products.find(p => p.id === parseInt(pId));
+                let displayName = pObj.name;
+                let displayUnit = pObj.unit || 'unit';
+                if (prod) {
+                    const translatedProd = getTranslatedProduct(prod);
+                    displayName = translatedProd.name;
+                    displayUnit = translatedProd.unit;
+                }
+
+                const subtotalSales = Math.round(pObj.totalSales * 100) / 100;
+                const subtotalExpense = Math.round(pObj.totalExpense * 100) / 100;
+                const netProfit = Math.round((subtotalSales - subtotalExpense) * 100) / 100;
+                const curSell = pObj.pricePerUnit !== undefined ? (Math.round(pObj.pricePerUnit * 100) / 100) : (Math.round(pObj.price * 100) / 100);
+                const curCost = Math.round(pObj.costPrice * 100) / 100;
+                const qtyVal = Math.round(pObj.qty * 100) / 100;
+
+                grandSales += subtotalSales;
+                grandProductExpenses += subtotalExpense;
+
+                s1Data.push([
+                    displayName,
+                    qtyVal,
+                    displayUnit,
+                    curSell,
+                    curCost,
+                    subtotalSales,
+                    subtotalExpense,
+                    netProfit
+                ]);
+            });
+
+            const grandProfit = Math.round((grandSales - grandProductExpenses) * 100) / 100;
+            s1Data.push([]);
+            s1Data.push([
+                "TOTALS", "-", "-", "-", "-",
+                Math.round(grandSales * 100) / 100,
+                Math.round(grandProductExpenses * 100) / 100,
+                grandProfit
+            ]);
+        }
+
+        const ws1 = XLSX.utils.aoa_to_sheet(s1Data);
+        ws1['!cols'] = [{ wch: 28 }, { wch: 15 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 24 }];
+        XLSX.utils.book_append_sheet(wb, ws1, "Product Breakdown");
+
+        // Sheet 2: Weekly Operational Expenses (Transport, Fuel, Misc)
+        const opExpensesList = getWeekOperationalExpenses(weekKey);
+        const opExpensesTotal = getWeekOperationalExpensesTotal(weekKey);
+        const s2Data = [
+            [`Weekly Operational Expenses (Transport, Fuel, Packaging, etc.)`],
+            [`Reporting Period: Week of ${weekKey}`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Expense Description", "Category", "Amount (₹)", "Date Logged"]
+        ];
+        if (opExpensesList.length === 0) {
+            s2Data.push(["No operational expenses logged for this week."]);
+        } else {
+            opExpensesList.forEach(exp => {
+                s2Data.push([
+                    exp.title || '-',
+                    exp.category || 'misc',
+                    Math.round(exp.amount * 100) / 100,
+                    exp.date || '-'
+                ]);
+            });
+            s2Data.push([]);
+            s2Data.push(["TOTAL OPERATIONAL EXPENSES", "-", opExpensesTotal, "-"]);
+        }
+        const ws2 = XLSX.utils.aoa_to_sheet(s2Data);
+        ws2['!cols'] = [{ wch: 32 }, { wch: 18 }, { wch: 16 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, ws2, "Operational Expenses");
+
+        // Sheet 3: Financial Summary Overview
+        const totalDiscount = Math.round((wData.totalDiscount || 0) * 100) / 100;
+        const totalDeliveryCharge = Math.round((wData.totalDeliveryCharge || 0) * 100) / 100;
+        const totalAllExpenses = Math.round((grandProductExpenses + opExpensesTotal) * 100) / 100;
+        const weeklyNetProfit = Math.round(((grandSales + totalDeliveryCharge) - (totalAllExpenses + totalDiscount)) * 100) / 100;
+
+        const s3Data = [
+            ["Kshetriva Farms - Weekly Financial Summary"],
+            [`Reporting Period: Week of ${weekKey}`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Financial Metric", "Amount (₹)"],
+            ["Gross Products Sales", Math.round(grandSales * 100) / 100],
+            ["Product Cost Expenses (COGS)", Math.round(grandProductExpenses * 100) / 100],
+            ["Transport, Fuel & Operational Expenses", opExpensesTotal],
+            ["Total Weekly Expenses (Products + Ops)", totalAllExpenses],
+            ["Total Customer Discounts Applied", -totalDiscount],
+            ["Delivery Charges Collected", totalDeliveryCharge],
+            ["Weekly Net Profit / Loss", weeklyNetProfit]
+        ];
+        const ws3 = XLSX.utils.aoa_to_sheet(s3Data);
+        ws3['!cols'] = [{ wch: 38 }, { wch: 18 }];
+        XLSX.utils.book_append_sheet(wb, ws3, "Financial Summary");
+
+        // Sheet 4: Customer Orders Log
+        const s4Data = [
+            [`Kshetriva Farms - Customer Orders (${weekKey})`],
+            [`Exported On: ${new Date().toLocaleString('en-IN')}`],
+            [],
+            ["Order ID", "Date & Time", "Customer Name", "Phone Number", "Delivery Area", "Order Items Summary", "Total Amount (₹)", "Discount (₹)", "Delivery Charge (₹)", "Order Status", "Comment or Add-ons"]
+        ];
+
+        if (weekOrders.length === 0) {
+            s4Data.push(["No customer orders recorded for this week."]);
+        } else {
+            const sortedOrders = [...weekOrders].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            sortedOrders.forEach(o => {
+                const dateStr = o.timestamp ? new Date(o.timestamp).toLocaleString('en-IN') : '-';
+                const itemsSummary = o.items ? o.items.map(it => `${it.name} (${it.qty} ${it.option || it.unit || ''})`).join(', ') : (o.cartSummary || '-');
+                s4Data.push([
+                    o.id || '-',
+                    dateStr,
+                    o.name || '-',
+                    o.phone || '-',
+                    o.area || '-',
+                    itemsSummary,
+                    o.totalAmount || o.totalSum || 0,
+                    o.discountAmount || 0,
+                    o.deliveryCharge || 0,
+                    o.status || 'pending',
+                    o.comment || o.orderNote || o.customerComment || ''
+                ]);
+            });
+        }
+
+        const ws4 = XLSX.utils.aoa_to_sheet(s4Data);
+        ws4['!cols'] = [{ wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 40 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 35 }];
+        XLSX.utils.book_append_sheet(wb, ws4, "Customer Orders");
+
+        const safeName = weekKey.replace(/[^a-zA-Z0-9]/g, '_');
+        downloadXlsxWorkbook(wb, `kshetriva_week_report_${safeName}.xlsx`);
+    });
+}
+
 function viewWeekDetails(weekKey) {
+    window.currentOpenWeekKey = weekKey;
     const container = document.getElementById('weekDetailsContainer');
     const title = document.getElementById('weekDetailsTitle');
     const tbody = document.getElementById('weekDetailsProductsList');
@@ -5099,12 +6106,25 @@ function viewWeekDetails(weekKey) {
     const wData = window.statsWeeksData[weekKey];
     if (!wData) return;
 
-    title.textContent = `Product Sales & Profits Breakdown: Week of ${weekKey}`;
+    title.innerHTML = `<i class="fa-solid fa-file-invoice-dollar" style="color: var(--primary-color);"></i> Product Sales & Profits Breakdown: <span style="color: #1e293b; font-weight: 800; font-size: 1.15rem; margin-left: 4px;">Week of ${escapeHtml(weekKey)}</span>`;
 
     const exportBtn = document.getElementById('btnExportWeekExcel');
     if (exportBtn) {
         exportBtn.onclick = () => exportWeekReportToExcel(weekKey);
     }
+
+    const addOtherBtn = document.getElementById('btnWeekAddOtherItem');
+    if (addOtherBtn) {
+        addOtherBtn.onclick = () => addWeekOtherProductItem(weekKey);
+    }
+
+    const addExpenseBtn = document.getElementById('btnWeekAddExpense');
+    if (addExpenseBtn) {
+        addExpenseBtn.onclick = () => addWeekOperationalExpense(weekKey);
+    }
+
+    // Render Operational Expenses for this week
+    renderWeekOperationalExpensesList(weekKey);
 
     tbody.innerHTML = '';
 
@@ -5112,59 +6132,87 @@ function viewWeekDetails(weekKey) {
     if (pKeys.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; color: #888; padding: 20px;">
-                    No products sold in this week.
+                <td colspan="8" style="text-align: center; color: #888; padding: 20px;">
+                    No products sold in this week. Use the section above to add other items or place storefront orders.
                 </td>
             </tr>
         `;
-        container.style.display = 'block';
-        container.scrollIntoView({ behavior: 'smooth' });
-        return;
+    } else {
+        pKeys.forEach(pId => {
+            const pObj = wData.products[pId];
+            const isOther = pObj.isOther || (typeof pId === 'string' && pId.startsWith('other_')) || !products.some(p => p.id === parseInt(pId));
+            const prod = !isOther ? products.find(p => p.id === parseInt(pId)) : null;
+
+            let displayName = pObj.name;
+            let displayUnit = pObj.unit || 'unit';
+            if (prod) {
+                const translatedProd = getTranslatedProduct(prod);
+                displayName = translatedProd.name;
+                displayUnit = translatedProd.unit;
+            }
+
+            const tr = document.createElement('tr');
+
+            const displayTotalSales = (Math.round(pObj.totalSales * 100) / 100).toFixed(2);
+            const displayTotalExpense = (Math.round(pObj.totalExpense * 100) / 100).toFixed(2);
+            const netProfit = Math.round((pObj.totalSales - pObj.totalExpense) * 100) / 100;
+            const profitStyle = netProfit >= 0 ? 'color: var(--primary-color); font-weight: 600;' : 'color: #d32f2f; font-weight: 600;';
+            const profitLabel = netProfit >= 0 ? `₹${netProfit.toFixed(2)}` : `-₹${Math.abs(netProfit).toFixed(2)}`;
+            const formattedQty = (Math.round(pObj.qty * 100) / 100).toFixed(2);
+            const curSell = pObj.pricePerUnit !== undefined ? (Math.round(pObj.pricePerUnit * 100) / 100).toFixed(2) : (Math.round(pObj.price * 100) / 100).toFixed(2);
+            const curCost = (Math.round(pObj.costPrice * 100) / 100).toFixed(2);
+
+            let col1Html = '';
+            let col2Html = '';
+
+            if (isOther) {
+                col1Html = `
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <input type="text" id="inputWeekName_${weekKey}_${pId}" value="${escapeHtml(pObj.name)}" placeholder="Item Name" style="width: 100%; min-width: 140px; padding: 6px 10px; border: 1.5px solid #a5d6a7; border-radius: 8px; font-size: 0.88rem; font-weight: 600; background: #fff;" oninput="recalcWeekRowLive('${weekKey}', '${pId}')">
+                        <span class="other-item-badge"><i class="fa-solid fa-tag"></i> Other Item</span>
+                    </div>
+                `;
+                col2Html = `
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" id="inputWeekQty_${weekKey}_${pId}" value="${formattedQty}" min="0.01" step="0.01" style="width: 75px; padding: 6px 8px; border: 1.5px solid #a5d6a7; border-radius: 8px; font-size: 0.88rem; font-weight: 600; background: #fff;" oninput="recalcWeekRowLive('${weekKey}', '${pId}')">
+                        <span style="font-size: 0.82rem; color: #666; font-weight: 500;">${escapeHtml(displayUnit)}</span>
+                    </div>
+                `;
+            } else {
+                col1Html = `<span style="font-weight: 600; color: var(--text-dark);">${escapeHtml(displayName)}</span>`;
+                col2Html = `<span style="font-weight: 500;">${formattedQty} ${escapeHtml(displayUnit)}</span>`;
+            }
+
+            tr.innerHTML = `
+                <td>${col1Html}</td>
+                <td>${col2Html}</td>
+                <td>
+                    <input type="number" id="inputWeekSell_${weekKey}_${pId}" value="${curSell}" step="0.01" min="0" style="width: 85px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9rem;" oninput="recalcWeekRowLive('${weekKey}', '${pId}')">
+                </td>
+                <td>
+                    <input type="number" id="inputWeekCost_${weekKey}_${pId}" value="${curCost}" step="0.01" min="0" style="width: 85px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 0.9rem;" oninput="recalcWeekRowLive('${weekKey}', '${pId}')">
+                </td>
+                <td><span id="cellWeekSales_${weekKey}_${pId}"><strong>₹${displayTotalSales}</strong></span></td>
+                <td><span id="cellWeekExp_${weekKey}_${pId}">₹${displayTotalExpense}</span></td>
+                <td><span id="cellWeekProfit_${weekKey}_${pId}" style="${profitStyle}">${profitLabel}</span></td>
+                <td>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button class="btn btn-primary" onclick="saveWeekProductPrices('${weekKey}', '${pId}', this)" style="padding: 6px 10px; font-size: 0.8rem; border-radius: 8px;" title="Save changes for this item in this week">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                        ${isOther ? `
+                        <button class="btn btn-secondary" onclick="deleteWeekOtherProductItem('${weekKey}', '${pId}')" style="padding: 6px 10px; font-size: 0.8rem; border-radius: 8px; border: 1.5px solid #d32f2f; color: #d32f2f; background: white;" title="Remove this other item from week">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 
-    pKeys.forEach(pId => {
-        const pObj = wData.products[pId];
-        const prod = products.find(p => p.id === parseInt(pId));
-
-        let displayName = pObj.name;
-        let displayUnit = pObj.unit;
-        if (prod) {
-            const translatedProd = getTranslatedProduct(prod);
-            displayName = translatedProd.name;
-            displayUnit = translatedProd.unit;
-        }
-
-        const tr = document.createElement('tr');
-
-        const displayTotalSales = Math.round(pObj.totalSales * 100) / 100;
-        const displayTotalExpense = Math.round(pObj.totalExpense * 100) / 100;
-        const netProfit = Math.round((pObj.totalSales - pObj.totalExpense) * 100) / 100;
-        const profitStyle = netProfit >= 0 ? 'color: var(--primary-color); font-weight: 600;' : 'color: #d32f2f; font-weight: 600;';
-        const profitLabel = netProfit >= 0 ? `₹${netProfit}` : `-₹${Math.abs(netProfit)}`;
-        const formattedQty = Math.round(pObj.qty * 100) / 100;
-
-        tr.innerHTML = `
-            <td style="font-weight: 600; color: var(--text-dark);">${displayName}</td>
-            <td>${formattedQty} ${displayUnit}</td>
-            <td>
-                <input type="number" id="inputWeekSell_${weekKey}_${pId}" value="${pObj.pricePerUnit !== undefined ? pObj.pricePerUnit : pObj.price}" min="0" style="width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
-            </td>
-            <td>
-                <div style="display: flex; align-items: center; gap: 5px;">
-                    <input type="number" id="inputWeekCost_${weekKey}_${pId}" value="${pObj.costPrice}" min="0" style="width: 60px; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
-                    <button class="btn btn-primary" onclick="saveWeekProductPrices('${weekKey}', ${pId}, this)" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 8px;" title="Save sell & cost prices for this week only">
-                        <i class="fa-solid fa-check"></i>
-                    </button>
-                </div>
-            </td>
-            <td><strong>₹${displayTotalSales}</strong></td>
-            <td>₹${displayTotalExpense}</td>
-            <td style="${profitStyle}">${profitLabel}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    // Calculate and render weekly summary cards
+    // Calculate and render weekly summary cards (including operational expenses)
     let pSales = 0;
     let pExpenses = 0;
     Object.values(wData.products).forEach(prod => {
@@ -5173,35 +6221,58 @@ function viewWeekDetails(weekKey) {
     });
     pSales = Math.round(pSales * 100) / 100;
     pExpenses = Math.round(pExpenses * 100) / 100;
+    const opExpensesTotal = getWeekOperationalExpensesTotal(weekKey);
     const totalDiscount = Math.round((wData.totalDiscount || 0) * 100) / 100;
     const totalDeliveryCharge = Math.round((wData.totalDeliveryCharge || 0) * 100) / 100;
-    const netProfit = Math.round((wData.grossSales - wData.expenses) * 100) / 100;
+    const totalAllExpenses = Math.round((pExpenses + opExpensesTotal) * 100) / 100;
+    const netProfit = Math.round(((pSales + totalDeliveryCharge) - (totalAllExpenses + totalDiscount)) * 100) / 100;
 
     const summaryContainer = document.getElementById('weekDetailsSummary');
     if (summaryContainer) {
-        const netProfitStyle = netProfit >= 0 ? 'color: var(--primary-color); font-weight: 700;' : 'color: #d32f2f; font-weight: 700;';
-        const netProfitLabel = netProfit >= 0 ? `₹${netProfit}` : `-₹${Math.abs(netProfit)}`;
+        const netProfitStyle = netProfit >= 0 ? 'color: #059669; font-weight: 800;' : 'color: #dc2626; font-weight: 800;';
+        const netProfitLabel = netProfit >= 0 ? `+₹${netProfit.toFixed(2)}` : `-₹${Math.abs(netProfit).toFixed(2)}`;
 
         summaryContainer.innerHTML = `
-            <div style="text-align: center; border-right: 1px solid #eee; padding: 10px;">
-                <div style="font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: 600;">Products Subtotal</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-top: 5px;">₹${pSales}</div>
+            <div class="week-summary-card-metric" style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-top: 4px solid #16a34a;">
+                <div style="font-size: 0.72rem; color: #15803d; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fa-solid fa-basket-shopping"></i> Products Subtotal
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #166534; margin-top: 5px;">₹${pSales.toFixed(2)}</div>
             </div>
-            <div style="text-align: center; border-right: 1px solid #eee; padding: 10px;">
-                <div style="font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: 600;">Product Expenses</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-top: 5px;">₹${pExpenses}</div>
+
+            <div class="week-summary-card-metric" style="background: #fff1f2; border: 1.5px solid #fecdd3; border-top: 4px solid #e11d48;">
+                <div style="font-size: 0.72rem; color: #be123c; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fa-solid fa-boxes-stacked"></i> Product Cost (COGS)
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #9f1239; margin-top: 5px;">₹${pExpenses.toFixed(2)}</div>
             </div>
-            <div style="text-align: center; border-right: 1px solid #eee; padding: 10px;">
-                <div style="font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: 600;">Total Discounts</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: #d32f2f; margin-top: 5px;">-₹${totalDiscount}</div>
+
+            <div class="week-summary-card-metric" style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-top: 4px solid #0288d1;">
+                <div style="font-size: 0.72rem; color: #1d4ed8; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fa-solid fa-gas-pump"></i> Transport & Fuel Ops
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: ${opExpensesTotal > 0 ? '#b91c1c' : '#1e40af'}; margin-top: 5px;">${opExpensesTotal > 0 ? '-₹' : '₹'}${opExpensesTotal.toFixed(2)}</div>
             </div>
-            <div style="text-align: center; border-right: 1px solid #eee; padding: 10px;">
-                <div style="font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: 600;">Delivery Charges</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-top: 5px;">+₹${totalDeliveryCharge}</div>
+
+            <div class="week-summary-card-metric" style="background: #fff7ed; border: 1.5px solid #fed7aa; border-top: 4px solid #ea580c;">
+                <div style="font-size: 0.72rem; color: #c2410c; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fa-solid fa-tags"></i> Total Discounts
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #9a3412; margin-top: 5px;">${totalDiscount > 0 ? '-₹' : '₹'}${totalDiscount.toFixed(2)}</div>
             </div>
-            <div style="text-align: center; padding: 10px;">
-                <div style="font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: 600;">Weekly Net Profit</div>
-                <div style="font-size: 1.15rem; margin-top: 5px; ${netProfitStyle}">${netProfitLabel}</div>
+
+            <div class="week-summary-card-metric" style="background: #f0fdfa; border: 1.5px solid #99f6e4; border-top: 4px solid #0d9488;">
+                <div style="font-size: 0.72rem; color: #0f766e; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fa-solid fa-motorcycle"></i> Delivery Charges
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #115e59; margin-top: 5px;">+₹${totalDeliveryCharge.toFixed(2)}</div>
+            </div>
+
+            <div class="week-summary-card-metric" style="background: ${netProfit >= 0 ? '#ecfdf5' : '#fef2f2'}; border: 1.5px solid ${netProfit >= 0 ? '#6ee7b7' : '#fca5a5'}; border-top: 4px solid ${netProfit >= 0 ? '#059669' : '#dc2626'}; box-shadow: 0 4px 12px ${netProfit >= 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};">
+                <div style="font-size: 0.74rem; color: ${netProfit >= 0 ? '#047857' : '#b91c1c'}; text-transform: uppercase; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fa-solid ${netProfit >= 0 ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> Weekly Net Profit
+                </div>
+                <div style="font-size: 1.25rem; margin-top: 5px; ${netProfitStyle}">${netProfitLabel}</div>
             </div>
         `;
     }
@@ -5213,45 +6284,59 @@ function viewWeekDetails(weekKey) {
 function saveWeekProductPrices(weekKey, productId, btnEl) {
     const costInput = document.getElementById(`inputWeekCost_${weekKey}_${productId}`);
     const sellInput = document.getElementById(`inputWeekSell_${weekKey}_${productId}`);
+    const nameInput = document.getElementById(`inputWeekName_${weekKey}_${productId}`);
+    const qtyInput = document.getElementById(`inputWeekQty_${weekKey}_${productId}`);
     if (!costInput || !sellInput) return;
 
-    const newCost = parseInt(costInput.value) || 0;
-    const newSell = parseInt(sellInput.value) || 0;
+    const newCost = Math.round((parseFloat(costInput.value) || 0) * 100) / 100;
+    const newSell = Math.round((parseFloat(sellInput.value) || 0) * 100) / 100;
+    const newName = nameInput ? nameInput.value.trim() : null;
+    const newQty = qtyInput ? (Math.round((parseFloat(qtyInput.value) || 1) * 100) / 100) : null;
+    const prod = products.find(p => p.id === parseInt(productId));
 
     fetchAllLeads().then((leads) => {
         const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
-        const ordersToUpdate = weekOrders.filter(o => o.items && o.items.some(item => item.id === productId));
+        const ordersToUpdate = weekOrders.filter(o => o.items && o.items.some(item => String(item.id) === String(productId)));
 
         if (ordersToUpdate.length === 0) {
-            alert("No orders containing this product found in this week.");
+            refreshAfterWeekCostUpdate(weekKey, btnEl);
             return;
         }
 
         ordersToUpdate.forEach(o => {
             let orderTotalDiff = 0;
             o.items.forEach(item => {
-                if (item.id === productId) {
+                if (String(item.id) === String(productId)) {
+                    if (newName) {
+                        item.name = newName;
+                    }
+                    if (newQty !== null && newQty > 0) {
+                        item.qty = newQty;
+                    }
                     item.costPrice = newCost;
 
-                    const oldItemTotal = item.total || (item.price * item.qty);
-                    const prod = products.find(p => p.id === productId);
+                    const oldItemTotal = item.total || (item.price * (item.qty || 1));
                     const multiplier = item.multiplier !== undefined ? item.multiplier : (prod ? getOptionMultiplier(prod, item.option, item.price) : 1);
 
-                    const newOptionPrice = Math.round(newSell * multiplier);
-                    item.price = newOptionPrice;
-                    item.total = newOptionPrice * item.qty;
-                    item.pricePerUnit = newSell;
+                    if (prod) {
+                        const newOptionPrice = Math.round(newSell * multiplier * 100) / 100;
+                        item.price = newOptionPrice;
+                        item.total = Math.round(newOptionPrice * item.qty * 100) / 100;
+                        item.pricePerUnit = newSell;
+                    } else {
+                        item.price = newSell;
+                        item.pricePerUnit = newSell;
+                        item.total = Math.round(newSell * item.qty * 100) / 100;
+                    }
 
                     orderTotalDiff += (item.total - oldItemTotal);
                 }
             });
-            o.totalAmount = Math.round((o.totalAmount + orderTotalDiff) * 100) / 100;
+            o.totalAmount = Math.round(((o.totalAmount || 0) + orderTotalDiff) * 100) / 100;
 
-            if (o.cartSummary) {
-                const parts = o.cartSummary.split(', Total: ₹');
-                if (parts.length === 2) {
-                    o.cartSummary = `${parts[0]}, Total: ₹${o.totalAmount}`;
-                }
+            if (o.items && o.items.length > 0) {
+                const totalItemsCount = o.items.reduce((sum, it) => sum + (it.qty || 1), 0);
+                o.cartSummary = `${totalItemsCount} items, Total: ₹${o.totalAmount.toFixed(2)}`;
             }
         });
 
@@ -5261,7 +6346,7 @@ function saveWeekProductPrices(weekKey, productId, btnEl) {
                 batch.set(db.collection("leads").doc(o.id), o);
             });
             batch.commit().then(() => {
-                console.log(`Updated week product prices for product ID ${productId} in week ${weekKey}`);
+                console.log(`Updated week product details for item ID ${productId} in week ${weekKey}`);
                 refreshAfterWeekCostUpdate(weekKey, btnEl);
             }).catch(err => console.error("Firestore batch update week product prices failed:", err));
         } else {
@@ -5280,6 +6365,57 @@ function saveWeekProductPrices(weekKey, productId, btnEl) {
             });
             localStorage.setItem('kshetriva_leads', JSON.stringify(allLeads));
             refreshAfterWeekCostUpdate(weekKey, btnEl);
+        }
+    });
+}
+
+function deleteWeekOtherProductItem(weekKey, productId) {
+    if (!confirm("Are you sure you want to remove this other item from all orders in this week?")) {
+        return;
+    }
+
+    fetchAllLeads().then((leads) => {
+        const weekOrders = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekKey);
+        const ordersToUpdate = weekOrders.filter(o => o.items && o.items.some(item => String(item.id) === String(productId)));
+
+        if (ordersToUpdate.length === 0) return;
+
+        ordersToUpdate.forEach(o => {
+            const itemToRemove = o.items.find(item => String(item.id) === String(productId));
+            const itemTotal = itemToRemove ? (itemToRemove.total || (itemToRemove.price * (itemToRemove.qty || 1))) : 0;
+            o.items = o.items.filter(item => String(item.id) !== String(productId));
+            o.totalAmount = Math.max(0, Math.round(((o.totalAmount || 0) - itemTotal) * 100) / 100);
+
+            if (o.items.length > 0) {
+                const totalItemsCount = o.items.reduce((sum, it) => sum + (it.qty || 1), 0);
+                o.cartSummary = `${totalItemsCount} items, Total: ₹${o.totalAmount.toFixed(2)}`;
+            } else {
+                o.cartSummary = `0 items, Total: ₹0.00`;
+            }
+        });
+
+        if (useFirebase && db) {
+            const batch = db.batch();
+            ordersToUpdate.forEach(o => {
+                batch.set(db.collection("leads").doc(o.id), o);
+            });
+            batch.commit().then(() => {
+                renderCompanyAnalytics();
+                setTimeout(() => viewWeekDetails(weekKey), 300);
+            }).catch(err => console.error("Failed to delete week other product item:", err));
+        } else {
+            let allLeads = [];
+            const localLeads = localStorage.getItem('kshetriva_leads');
+            if (localLeads) {
+                try { allLeads = JSON.parse(localLeads); } catch (e) { }
+            }
+            ordersToUpdate.forEach(updatedOrder => {
+                const idx = allLeads.findIndex(l => l.id === updatedOrder.id);
+                if (idx !== -1) allLeads[idx] = updatedOrder;
+            });
+            localStorage.setItem('kshetriva_leads', JSON.stringify(allLeads));
+            renderCompanyAnalytics();
+            setTimeout(() => viewWeekDetails(weekKey), 300);
         }
     });
 }
@@ -5304,9 +6440,52 @@ function refreshAfterWeekCostUpdate(weekKey, btnEl) {
     }, 300);
 }
 
+function clearWeekOrders(weekStr) {
+    if (!confirm(`Are you sure you want to clear/delete all customer orders for week "${weekStr}"? This action cannot be undone.`)) {
+        return;
+    }
+
+    fetchAllLeads().then((leads) => {
+        const ordersToDelete = leads.filter(l => l.type === 'order' && getWeekRangeString(l.timestamp) === weekStr);
+        if (ordersToDelete.length === 0) {
+            alert("No orders found for this week.");
+            return;
+        }
+
+        if (useFirebase && db) {
+            const batch = db.batch();
+            ordersToDelete.forEach(o => {
+                batch.delete(db.collection("leads").doc(o.id));
+            });
+            batch.commit().then(() => {
+                renderCompanyAnalytics();
+                closeWeekDetails();
+                alert(`Successfully cleared ${ordersToDelete.length} orders for week "${weekStr}".`);
+            }).catch(err => {
+                console.error("Failed to clear week orders from Firestore:", err);
+                alert("Failed to clear orders. Please check connection.");
+            });
+        } else {
+            let allLeads = [];
+            const localLeads = localStorage.getItem('kshetriva_leads');
+            if (localLeads) {
+                try {
+                    allLeads = JSON.parse(localLeads);
+                } catch (e) { }
+            }
+            const remainingLeads = allLeads.filter(l => !(l.type === 'order' && getWeekRangeString(l.timestamp) === weekStr));
+            localStorage.setItem('kshetriva_leads', JSON.stringify(remainingLeads));
+            renderCompanyAnalytics();
+            closeWeekDetails();
+            alert(`Successfully cleared ${ordersToDelete.length} orders for week "${weekStr}".`);
+        }
+    });
+}
+
 function closeWeekDetails() {
     const container = document.getElementById('weekDetailsContainer');
     if (container) container.style.display = 'none';
+    window.currentOpenWeekKey = null;
 }
 
 
